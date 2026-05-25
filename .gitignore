@@ -1,0 +1,73 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+ENV/
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Streamlit
+.streamlit/secrets.toml
+
+# Base de datos (COMENTADO - descomenta si NO quieres subir la BD)
+# porra_mundial_2026.db
+
+# Archivos de usuario y temporales
+*.csv
+*.xlsx
+*.xls
+*.pdf
+*.jpeg
+*.jpg
+*.png
+*.gif
+
+# EXCEPCIONES: Archivos de ejemplo que SÍ queremos en el repo
+!ejemplo_usuarios.csv
+!ejemplo_jornada.csv
+
+# Archivos de sistema
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Logs
+*.log
+
+# Backups
+*.bak
+*.backup
+*.old
+
+# Archivos temporales de ejecución
+*.pid
+*.seed
+*.pid.lock
