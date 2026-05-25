@@ -740,19 +740,72 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
+# Sistema de autenticación simple para admin
+def check_password():
+    """Retorna True si el usuario ha introducido la contraseña correcta"""
+
+    def password_entered():
+        """Verifica si la contraseña introducida es correcta"""
+        if st.session_state["password"] == st.secrets.get("admin_password", "admin123"):
+            st.session_state["password_correct"] = True
+            del st.session_state["password"]  # No almacenar la contraseña
+        else:
+            st.session_state["password_correct"] = False
+
+    # Inicializar estado
+    if "password_correct" not in st.session_state:
+        st.session_state["password_correct"] = False
+
+    # Retornar True si ya está autenticado
+    if st.session_state["password_correct"]:
+        return True
+
+    # Mostrar formulario de login en sidebar
+    with st.sidebar:
+        st.markdown("### 🔐 Acceso Administrador")
+        st.text_input(
+            "Contraseña",
+            type="password",
+            on_change=password_entered,
+            key="password"
+        )
+
+        if "password_correct" in st.session_state and not st.session_state["password_correct"]:
+            st.error("❌ Contraseña incorrecta")
+
+        st.markdown("---")
+        st.info("ℹ️ Las secciones de **Usuarios** y **Nueva Jornada** requieren autenticación de administrador.")
+
+    return False
+
+# Verificar autenticación
+is_admin = check_password()
+
 # Header
 st.markdown('<div class="main-header">⚽ Porra Mundial 2026 ⚽</div>', unsafe_allow_html=True)
 
-# Tabs principales
-tab1, tab2, tab3, tab4, tab5, tab6, tab7 = st.tabs([
-    "📊 Inicio",
-    "👥 Usuarios",
-    "➕ Nueva Jornada",
-    "⚽ Resultados",
-    "🏆 Clasificaciones",
-    "📈 Estadísticas",
-    "📜 Histórico"
-])
+# Tabs principales - mostrar solo públicas si no es admin
+if is_admin:
+    tab1, tab2, tab3, tab4, tab5, tab6, tab7 = st.tabs([
+        "📊 Inicio",
+        "👥 Usuarios",
+        "➕ Nueva Jornada",
+        "⚽ Resultados",
+        "🏆 Clasificaciones",
+        "📈 Estadísticas",
+        "📜 Histórico"
+    ])
+else:
+    # Solo mostrar pestañas públicas
+    tab1, tab4, tab5, tab6, tab7 = st.tabs([
+        "📊 Inicio",
+        "🏆 Clasificaciones",
+        "📈 Estadísticas",
+        "📜 Histórico",
+        "ℹ️ Info"
+    ])
+    # Crear tabs dummy para mantener la estructura del código
+    tab2 = tab3 = None
 
 # TAB 1: INICIO
 with tab1:
@@ -818,8 +871,9 @@ with tab1:
     else:
         st.info("👋 ¡Bienvenido! No hay jornadas registradas aún. Ve a la pestaña 'Nueva Jornada' para comenzar.")
 
-# TAB 2: USUARIOS
-with tab2:
+# TAB 2: USUARIOS (Solo Admin)
+if tab2 is not None:
+  with tab2:
     st.header("👥 Gestión de Usuarios")
 
     col1, col2 = st.columns([2, 1])
@@ -954,8 +1008,9 @@ with tab2:
             else:
                 st.error(mensaje)
 
-# TAB 3: NUEVA JORNADA
-with tab3:
+# TAB 3: NUEVA JORNADA (Solo Admin)
+if tab3 is not None:
+  with tab3:
     st.header("➕ Crear Nueva Jornada")
 
     # Verificar que haya usuarios registrados
@@ -1376,6 +1431,59 @@ with tab7:
                     st.markdown(f"- **Partido {partido['numero_partido']}:** {partido['nombre']}{doble_text}{resultado_text}")
     else:
         st.info("No hay jornadas registradas en el histórico.")
+
+# TAB INFO (Solo visible para usuarios no autenticados)
+if not is_admin and 'tab7' in locals():
+    with tab7:
+        st.header("ℹ️ Información de la Porra")
+
+        st.markdown("""
+        ### 📋 Sistema de Puntuación
+
+        | Acierto | Puntos | Descripción |
+        |---------|--------|-------------|
+        | Resultado exacto (dif > 1) | **12** | Predices 3-0 y sale 3-0 |
+        | Resultado exacto (dif ≤ 1) | **10** | Predices 1-0 y sale 1-0 o 1-1 y sale 1-1 |
+        | Empate sin resultado exacto | **6** | Predices 1-1 y sale 2-2 |
+        | Ganador + diferencia | **6** | Predices 2-0 y sale 3-1 (ambos +2 local) |
+        | Solo ganador | **4** | Predices 1-0 y sale 2-1 |
+        | Fallo | **0** | Ganador incorrecto |
+
+        ### ⭐ Jornadas Estrella
+
+        En las **jornadas estrella**, un partido designado puntúa el **doble (x2)**.
+
+        ### 🏆 Clasificaciones
+
+        Puedes ver:
+        - **Clasificación General**: Puntuación acumulada del torneo completo
+        - **Clasificación por Jornada**: Resultados de cada jornada individual
+        - **Estadísticas Detalladas**: Gráficos de evolución y análisis
+
+        ### 📈 Estadísticas
+
+        Consulta:
+        - Evolución de puntos jornada a jornada
+        - Estadísticas individuales de cada participante
+        - Distribución de aciertos (12pts, 10pts, 6pts, 4pts, 0pts)
+        - Comparativas entre participantes
+
+        ### 📜 Histórico
+
+        Revisa todas las jornadas pasadas con sus clasificaciones y resultados.
+
+        ---
+
+        ### 🔐 Acceso Administrador
+
+        Si eres el administrador, ingresa tu contraseña en la barra lateral izquierda para acceder a:
+        - **Gestión de Usuarios**: Añadir, editar, desactivar participantes
+        - **Nueva Jornada**: Crear y configurar jornadas con partidos y pronósticos
+
+        ---
+
+        **¿Tienes dudas?** Contacta al administrador de la porra.
+        """)
 
 # Footer
 st.markdown("---")
