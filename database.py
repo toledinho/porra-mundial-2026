@@ -134,36 +134,12 @@ class TursoCursor:
                 self._results = []
 
             # Construir description para pandas (SIEMPRE necesario)
-            # Turso devuelve cols como lista de dicts: [{"name": "id", "decltype": "INTEGER"}, ...]
-
-            # DEBUG
-            import streamlit as st
-            st.write("🔍 DEBUG execute - type(result):", type(result))
-            st.write("🔍 DEBUG execute - dir(result):", dir(result))
-            st.write("🔍 DEBUG execute - hasattr cols:", hasattr(result, 'cols'))
-            st.write("🔍 DEBUG execute - hasattr columns:", hasattr(result, 'columns'))
-
-            # Intentar acceder a diferentes atributos
-            for attr in ['cols', 'columns', 'column_names', 'fields', '_cols', '_columns']:
-                if hasattr(result, attr):
-                    st.write(f"🔍 DEBUG execute - result.{attr}:", getattr(result, attr))
-
-            if hasattr(result, 'cols') and result.cols:
-                # cols es una lista de objetos/dicts con atributo 'name'
-                columns = []
-                for col in result.cols:
-                    if isinstance(col, dict):
-                        # Si es un dict, acceder por clave
-                        columns.append(col.get('name', 'unknown'))
-                    elif hasattr(col, 'name'):
-                        # Si es un objeto, acceder por atributo
-                        columns.append(col.name)
-                    else:
-                        # Fallback
-                        columns.append(str(col))
-                st.write("🔍 DEBUG execute - columns extraídas:", columns)
+            # libsql_client devuelve ResultSet con result.columns (tupla de strings)
+            if hasattr(result, 'columns') and result.columns:
+                # columns es una tupla/lista de strings: ('id', 'nombre', 'email', ...)
+                columns = list(result.columns)
                 self.description = [(col, None, None, None, None, None, None) for col in columns]
-            # Si no hay cols, intentar extraer de rows (menos confiable)
+            # Fallback: intentar obtener de la primera fila
             elif self._results and len(self._results) > 0:
                 if hasattr(self._results[0], 'keys'):
                     columns = list(self._results[0].keys())
@@ -189,28 +165,15 @@ class TursoCursor:
     def fetchone(self):
         if self._results and len(self._results) > 0:
             row = self._results[0]
-            # Turso rows son listas de objetos {"type": "...", "value": "..."}
-            if isinstance(row, list):
-                return tuple(cell['value'] if isinstance(cell, dict) and 'value' in cell else cell for cell in row)
-            elif hasattr(row, 'values'):
-                return tuple(row.values())
-            else:
-                return row
+            # libsql_client Row objects son iterables directamente
+            return tuple(row)
         return None
 
     def fetchall(self):
         if not self._results:
             return []
-        results = []
-        for row in self._results:
-            # Turso rows son listas de objetos {"type": "...", "value": "..."}
-            if isinstance(row, list):
-                results.append(tuple(cell['value'] if isinstance(cell, dict) and 'value' in cell else cell for cell in row))
-            elif hasattr(row, 'values'):
-                results.append(tuple(row.values()))
-            else:
-                results.append(row)
-        return results
+        # libsql_client Row objects son iterables directamente
+        return [tuple(row) for row in self._results]
 
     def close(self):
         pass
