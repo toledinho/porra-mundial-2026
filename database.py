@@ -138,6 +138,11 @@ class TursoCursor:
             if hasattr(result, 'cols') and result.cols:
                 columns = []
                 for col in result.cols:
+                    # Debug: imprimir estructura
+                    print(f"DEBUG col type: {type(col)}, col: {col}")
+                    if hasattr(col, '__dict__'):
+                        print(f"DEBUG col.__dict__: {col.__dict__}")
+
                     # Probar diferentes formas de obtener el nombre
                     if hasattr(col, 'name'):
                         columns.append(col.name)
@@ -147,7 +152,11 @@ class TursoCursor:
                         columns.append(col.__dict__['name'])
                     else:
                         # Último recurso: usar str
-                        columns.append(str(col))
+                        col_str = str(col)
+                        print(f"DEBUG usando str: {col_str}")
+                        columns.append(col_str)
+
+                print(f"DEBUG columns finales: {columns}")
                 self.description = [(col, None, None, None, None, None, None) for col in columns]
             # Si no hay cols pero hay rows, obtener de la primera fila
             elif self._results and len(self._results) > 0:
