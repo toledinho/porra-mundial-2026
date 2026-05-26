@@ -102,8 +102,16 @@ def init_db():
         nombre TEXT,
         es_estrella INTEGER DEFAULT 0,
         fecha TEXT,
-        fase TEXT
+        fase TEXT,
+        estado_pronosticos TEXT DEFAULT 'cerrada'
     )''')
+
+    # Migración: Añadir columna estado_pronosticos si no existe (para bases de datos antiguas)
+    try:
+        c.execute("SELECT estado_pronosticos FROM jornadas LIMIT 1")
+    except:
+        c.execute("ALTER TABLE jornadas ADD COLUMN estado_pronosticos TEXT DEFAULT 'cerrada'")
+        conn.commit()
 
     # Tabla de partidos
     c.execute('''CREATE TABLE IF NOT EXISTS partidos (
