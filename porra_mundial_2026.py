@@ -821,6 +821,14 @@ is_authenticated = (is_admin or is_responsable)
 # Header
 st.markdown('<div class="main-header">⚽ Porra Mundial 2026 ⚽</div>', unsafe_allow_html=True)
 
+# Indicador de base de datos en sidebar
+with st.sidebar:
+    from database import USE_TURSO
+    if USE_TURSO:
+        st.success("💾 Base de datos: **Turso Cloud** (persistente)")
+    else:
+        st.warning("💾 Base de datos: **SQLite Local** (se pierde al reiniciar)")
+
 # Tabs principales - mostrar según nivel de acceso
 if is_admin:
     # Admin ve todo
