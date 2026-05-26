@@ -134,26 +134,23 @@ class TursoCursor:
                 self._results = []
 
             # Construir description para pandas (SIEMPRE necesario)
-            # Debug completo
-            print(f"=== DEBUG TURSO ===")
-            print(f"result type: {type(result)}")
-            print(f"result attributes: {dir(result)}")
-            if hasattr(result, 'cols'):
-                print(f"result.cols: {result.cols}")
-                if result.cols and len(result.cols) > 0:
-                    print(f"result.cols[0] type: {type(result.cols[0])}")
-                    print(f"result.cols[0]: {result.cols[0]}")
-                    if hasattr(result.cols[0], '__dict__'):
-                        print(f"result.cols[0].__dict__: {result.cols[0].__dict__}")
-            if self._results and len(self._results) > 0:
-                print(f"result.rows[0] type: {type(self._results[0])}")
-                print(f"result.rows[0]: {self._results[0]}")
-                if hasattr(self._results[0], 'keys'):
-                    print(f"result.rows[0].keys(): {list(self._results[0].keys())}")
-            print(f"===================")
-
-            # SIEMPRE intentar obtener de la primera fila primero (más confiable)
-            if self._results and len(self._results) > 0:
+            # Turso devuelve cols como lista de dicts: [{"name": "id", "decltype": "INTEGER"}, ...]
+            if hasattr(result, 'cols') and result.cols:
+                # cols es una lista de objetos/dicts con atributo 'name'
+                columns = []
+                for col in result.cols:
+                    if isinstance(col, dict):
+                        # Si es un dict, acceder por clave
+                        columns.append(col.get('name', 'unknown'))
+                    elif hasattr(col, 'name'):
+                        # Si es un objeto, acceder por atributo
+                        columns.append(col.name)
+                    else:
+                        # Fallback
+                        columns.append(str(col))
+                self.description = [(col, None, None, None, None, None, None) for col in columns]
+            # Si no hay cols, intentar extraer de rows (menos confiable)
+            elif self._results and len(self._results) > 0:
                 if hasattr(self._results[0], 'keys'):
                     columns = list(self._results[0].keys())
                 elif isinstance(self._results[0], dict):
@@ -161,11 +158,7 @@ class TursoCursor:
                 else:
                     columns = [f"column_{i}" for i in range(len(self._results[0]))]
                 self.description = [(col, None, None, None, None, None, None) for col in columns]
-            # Si no hay rows, intentar de cols
-            elif hasattr(result, 'cols') and result.cols:
-                columns = [col.name if hasattr(col, 'name') else str(col) for col in result.cols]
-                self.description = [(col, None, None, None, None, None, None) for col in columns]
-            # Si no hay ni rows ni cols, description vacía
+            # Si no hay ni cols ni rows, description vacía
             else:
                 self.description = []
 
@@ -181,13 +174,29 @@ class TursoCursor:
 
     def fetchone(self):
         if self._results and len(self._results) > 0:
-            return tuple(self._results[0].values()) if hasattr(self._results[0], 'values') else self._results[0]
+            row = self._results[0]
+            # Turso rows son listas de objetos {"type": "...", "value": "..."}
+            if isinstance(row, list):
+                return tuple(cell['value'] if isinstance(cell, dict) and 'value' in cell else cell for cell in row)
+            elif hasattr(row, 'values'):
+                return tuple(row.values())
+            else:
+                return row
         return None
 
     def fetchall(self):
         if not self._results:
             return []
-        return [tuple(row.values()) if hasattr(row, 'values') else row for row in self._results]
+        results = []
+        for row in self._results:
+            # Turso rows son listas de objetos {"type": "...", "value": "..."}
+            if isinstance(row, list):
+                results.append(tuple(cell['value'] if isinstance(cell, dict) and 'value' in cell else cell for cell in row))
+            elif hasattr(row, 'values'):
+                results.append(tuple(row.values()))
+            else:
+                results.append(row)
+        return results
 
     def close(self):
         pass
