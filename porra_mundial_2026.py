@@ -95,6 +95,13 @@ def init_db():
         activo INTEGER DEFAULT 1
     )''')
 
+    # Migración: Añadir columna activo si no existe (para bases de datos antiguas)
+    try:
+        c.execute("SELECT activo FROM usuarios LIMIT 1")
+    except:
+        c.execute("ALTER TABLE usuarios ADD COLUMN activo INTEGER DEFAULT 1")
+        conn.commit()
+
     # Tabla de jornadas
     c.execute('''CREATE TABLE IF NOT EXISTS jornadas (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
