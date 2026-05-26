@@ -1136,6 +1136,93 @@ if tab2 is not None:
         else:
             st.info("No hay usuarios para eliminar")
 
+    # SECCIÓN OCULTA: Recrear todas las tablas (solo para emergencias)
+    st.markdown("---")
+    with st.expander("🔧 HERRAMIENTAS AVANZADAS (Solo Emergencias)", expanded=False):
+        st.error("""
+        **⚠️ PELIGRO EXTREMO ⚠️**
+
+        Esta herramienta eliminará **TODAS LAS TABLAS** y las recreará desde cero.
+        Perderás:
+        - Todos los usuarios
+        - Todas las jornadas
+        - Todos los partidos
+        - Todos los pronósticos
+
+        **ÚSALO SOLO SI LA BASE DE DATOS ESTÁ CORRUPTA Y NECESITAS EMPEZAR DE CERO.**
+        """)
+
+        confirmar_recrear = st.text_input(
+            "Escribe 'RECREAR TABLAS' para confirmar",
+            key="confirmar_recrear_tablas"
+        )
+
+        if st.button("💣 RECREAR TODAS LAS TABLAS", type="secondary", disabled=(confirmar_recrear != "RECREAR TABLAS")):
+            try:
+                conn = get_conn()
+                c = conn.cursor()
+
+                with st.spinner("Eliminando tablas..."):
+                    c.execute("DROP TABLE IF EXISTS pronosticos")
+                    c.execute("DROP TABLE IF EXISTS partidos")
+                    c.execute("DROP TABLE IF EXISTS jornadas")
+                    c.execute("DROP TABLE IF EXISTS usuarios")
+                    conn.commit()
+
+                with st.spinner("Creando tablas nuevas..."):
+                    # Usuarios
+                    c.execute('''CREATE TABLE usuarios (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        nombre TEXT UNIQUE NOT NULL,
+                        email TEXT,
+                        fecha_registro TEXT,
+                        activo INTEGER DEFAULT 1
+                    )''')
+
+                    # Jornadas
+                    c.execute('''CREATE TABLE jornadas (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        numero INTEGER NOT NULL,
+                        nombre TEXT,
+                        es_estrella INTEGER DEFAULT 0,
+                        fecha TEXT,
+                        fase TEXT,
+                        estado_pronosticos TEXT DEFAULT 'cerrada'
+                    )''')
+
+                    # Partidos
+                    c.execute('''CREATE TABLE partidos (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        jornada_id INTEGER,
+                        numero_partido INTEGER,
+                        nombre TEXT,
+                        resultado_real TEXT,
+                        es_doble INTEGER DEFAULT 0,
+                        FOREIGN KEY (jornada_id) REFERENCES jornadas (id)
+                    )''')
+
+                    # Pronósticos
+                    c.execute('''CREATE TABLE pronosticos (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        partido_id INTEGER,
+                        participante TEXT,
+                        prediccion TEXT,
+                        puntos INTEGER,
+                        FOREIGN KEY (partido_id) REFERENCES partidos (id)
+                    )''')
+
+                    conn.commit()
+                    conn.close()
+
+                st.success("✅ Tablas recreadas exitosamente. La base de datos está ahora vacía y lista para usar.")
+                st.balloons()
+                st.rerun()
+
+            except Exception as e:
+                st.error(f"❌ Error al recrear tablas: {e}")
+                import traceback
+                st.code(traceback.format_exc())
+
 # TAB 3: NUEVA JORNADA (Solo Admin)
 if tab3 is not None:
   with tab3:
