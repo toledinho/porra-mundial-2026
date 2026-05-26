@@ -25,6 +25,10 @@ if USE_TURSO:
         if not TURSO_URL or not TURSO_TOKEN:
             raise ValueError("TURSO_URL y TURSO_TOKEN deben estar configurados")
 
+        # Convertir URL de libsql:// a https:// para evitar problemas con WebSocket
+        if TURSO_URL.startswith("libsql://"):
+            TURSO_URL = TURSO_URL.replace("libsql://", "https://")
+
         # Cliente de Turso global
         _turso_client = None
 
