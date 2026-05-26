@@ -130,18 +130,24 @@ class TursoCursor:
             # Manejar resultados
             if hasattr(result, 'rows'):
                 self._results = result.rows
-                # Construir description para pandas
-                if self._results and len(self._results) > 0:
-                    if hasattr(self._results[0], 'keys'):
-                        columns = list(self._results[0].keys())
-                    else:
-                        columns = [f"column_{i}" for i in range(len(self._results[0]))]
-                    self.description = [(col, None, None, None, None, None, None) for col in columns]
-                else:
-                    self.description = None
             else:
                 self._results = []
-                self.description = None
+
+            # Construir description para pandas (SIEMPRE necesario)
+            # Primero intentar obtener de 'cols' en el resultado
+            if hasattr(result, 'cols') and result.cols:
+                columns = [col.name if hasattr(col, 'name') else str(col) for col in result.cols]
+                self.description = [(col, None, None, None, None, None, None) for col in columns]
+            # Si no hay cols pero hay rows, obtener de la primera fila
+            elif self._results and len(self._results) > 0:
+                if hasattr(self._results[0], 'keys'):
+                    columns = list(self._results[0].keys())
+                else:
+                    columns = [f"column_{i}" for i in range(len(self._results[0]))]
+                self.description = [(col, None, None, None, None, None, None) for col in columns]
+            # Si no hay ni cols ni rows, description vacía (mejor que None)
+            else:
+                self.description = []
 
             # Obtener lastrowid si es un INSERT
             if query.strip().upper().startswith('INSERT'):
