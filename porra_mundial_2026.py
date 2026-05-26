@@ -1554,15 +1554,16 @@ with tab6:
 
         st.markdown("---")
 
-        # Clasificación por Jornada
-        st.subheader("📅 Clasificación por Jornada")
+        # Clasificación por Jornada Individual
+        st.subheader("📅 Clasificación por Jornada Individual")
 
         jornadas = get_jornadas()
         if len(jornadas) > 0:
             jornada_seleccionada = st.selectbox(
                 "Selecciona una jornada",
                 options=jornadas['id'].tolist(),
-                format_func=lambda x: jornadas[jornadas['id'] == x]['nombre'].iloc[0]
+                format_func=lambda x: jornadas[jornadas['id'] == x]['nombre'].iloc[0],
+                key="jornada_individual"
             )
 
             clasificacion_jornada = get_clasificacion_jornada(jornada_seleccionada)
@@ -1570,6 +1571,66 @@ with tab6:
             clasificacion_jornada.columns = ['#', 'Participante', 'Puntos Jornada', 'Aciertos', 'Total Pronósticos']
 
             st.dataframe(clasificacion_jornada, use_container_width=True, hide_index=True)
+
+        st.markdown("---")
+
+        # Clasificación por Jornadas Personalizadas (NUEVO)
+        st.subheader("🎯 Clasificación por Jornadas Personalizadas")
+        st.markdown("*Selecciona múltiples jornadas para ver la clasificación acumulada (ideal para premios por bloques)*")
+
+        if len(jornadas) > 0:
+            # Multiselect de jornadas
+            jornadas_seleccionadas = st.multiselect(
+                "Selecciona las jornadas a incluir",
+                options=jornadas['id'].tolist(),
+                format_func=lambda x: f"Jornada {jornadas[jornadas['id'] == x]['numero'].iloc[0]} - {jornadas[jornadas['id'] == x]['nombre'].iloc[0]}",
+                default=None,
+                key="jornadas_personalizadas"
+            )
+
+            if len(jornadas_seleccionadas) > 0:
+                # Obtener clasificación acumulada de las jornadas seleccionadas
+                conn = get_conn()
+                query = f"""
+                    SELECT
+                        p.participante,
+                        SUM(p.puntos) as puntos_totales,
+                        COUNT(CASE WHEN p.puntos > 0 THEN 1 END) as aciertos,
+                        COUNT(p.id) as total_predicciones
+                    FROM pronosticos p
+                    INNER JOIN partidos pa ON p.partido_id = pa.id
+                    WHERE pa.jornada_id IN ({','.join(['?']*len(jornadas_seleccionadas))})
+                    GROUP BY p.participante
+                    ORDER BY puntos_totales DESC
+                """
+                clasificacion_personalizada = pd.read_sql_query(query, conn, params=tuple(jornadas_seleccionadas))
+                conn.close()
+
+                # Mostrar jornadas incluidas
+                nombres_jornadas = [jornadas[jornadas['id'] == jid]['nombre'].iloc[0] for jid in jornadas_seleccionadas]
+                st.info(f"📊 **Jornadas incluidas:** {', '.join(nombres_jornadas)}")
+
+                # Añadir posición
+                clasificacion_personalizada.insert(0, 'Posición', range(1, len(clasificacion_personalizada) + 1))
+                clasificacion_personalizada.columns = ['#', 'Participante', 'Puntos Acumulados', 'Aciertos', 'Total Pronósticos']
+
+                # Mostrar clasificación
+                st.dataframe(clasificacion_personalizada, use_container_width=True, hide_index=True)
+
+                # Botón de descarga
+                csv_personalizada = clasificacion_personalizada.to_csv(index=False).encode('utf-8')
+                jornadas_nums = [str(jornadas[jornadas['id'] == jid]['numero'].iloc[0]) for jid in jornadas_seleccionadas]
+                filename = f"clasificacion_jornadas_{'_'.join(jornadas_nums)}_{datetime.now().strftime('%Y%m%d')}.csv"
+
+                st.download_button(
+                    label="📥 Descargar Clasificación Personalizada (CSV)",
+                    data=csv_personalizada,
+                    file_name=filename,
+                    mime="text/csv",
+                    key="download_personalizada"
+                )
+            else:
+                st.info("👆 Selecciona al menos una jornada para ver la clasificación acumulada")
     else:
         st.info("No hay datos de clasificación aún. Crea una jornada primero.")
 
