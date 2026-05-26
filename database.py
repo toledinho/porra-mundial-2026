@@ -136,11 +136,24 @@ class TursoCursor:
             # Construir description para pandas (SIEMPRE necesario)
             # Primero intentar obtener de 'cols' en el resultado
             if hasattr(result, 'cols') and result.cols:
-                columns = [col.name if hasattr(col, 'name') else str(col) for col in result.cols]
+                columns = []
+                for col in result.cols:
+                    # Probar diferentes formas de obtener el nombre
+                    if hasattr(col, 'name'):
+                        columns.append(col.name)
+                    elif isinstance(col, dict) and 'name' in col:
+                        columns.append(col['name'])
+                    elif hasattr(col, '__dict__') and 'name' in col.__dict__:
+                        columns.append(col.__dict__['name'])
+                    else:
+                        # Último recurso: usar str
+                        columns.append(str(col))
                 self.description = [(col, None, None, None, None, None, None) for col in columns]
             # Si no hay cols pero hay rows, obtener de la primera fila
             elif self._results and len(self._results) > 0:
                 if hasattr(self._results[0], 'keys'):
+                    columns = list(self._results[0].keys())
+                elif isinstance(self._results[0], dict):
                     columns = list(self._results[0].keys())
                 else:
                     columns = [f"column_{i}" for i in range(len(self._results[0]))]

@@ -966,11 +966,20 @@ if tab2 is not None:
             col_stats, col_export = st.columns([2, 1])
 
             with col_stats:
-                st.markdown(f"**Total usuarios activos:** {len(usuarios_df[usuarios_df['activo'] == 1])}")
+                # Manejar si la columna 'activo' no existe (BD corrupta)
+                if 'activo' in usuarios_df.columns:
+                    st.markdown(f"**Total usuarios activos:** {len(usuarios_df[usuarios_df['activo'] == 1])}")
+                else:
+                    st.markdown(f"**Total usuarios:** {len(usuarios_df)}")
+                    st.warning("⚠️ Columna 'activo' no encontrada. Usa 'HERRAMIENTAS AVANZADAS' abajo para recrear tablas.")
 
             with col_export:
                 # Exportar solo nombres de usuarios activos
-                usuarios_export = usuarios_df[usuarios_df['activo'] == 1][['nombre']].copy()
+                if 'activo' in usuarios_df.columns:
+                    usuarios_export = usuarios_df[usuarios_df['activo'] == 1][['nombre']].copy()
+                else:
+                    usuarios_export = usuarios_df[['nombre']].copy()
+
                 csv_usuarios = usuarios_export.to_csv(index=False).encode('utf-8')
 
                 st.download_button(
@@ -983,7 +992,11 @@ if tab2 is not None:
             # Editar usuario
             st.markdown("---")
             st.subheader("✏️ Editar Nombre de Usuario")
-            usuarios_activos = usuarios_df[usuarios_df['activo'] == 1]['nombre'].tolist()
+
+            if 'activo' in usuarios_df.columns:
+                usuarios_activos = usuarios_df[usuarios_df['activo'] == 1]['nombre'].tolist()
+            else:
+                usuarios_activos = usuarios_df['nombre'].tolist()
 
             if usuarios_activos:
                 usuario_editar = st.selectbox("Selecciona usuario a editar", usuarios_activos, key="select_editar")
