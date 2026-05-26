@@ -959,13 +959,6 @@ if tab2 is not None:
         mostrar_inactivos = st.checkbox("Mostrar usuarios inactivos", value=False)
         usuarios_df = get_usuarios(solo_activos=not mostrar_inactivos)
 
-        # DEBUG TEMPORAL
-        st.error("🔍 DEBUG - Columnas del DataFrame:")
-        st.code(list(usuarios_df.columns))
-        if len(usuarios_df) > 0:
-            st.error("🔍 DEBUG - Primera fila:")
-            st.code(usuarios_df.iloc[0].to_dict())
-
         if len(usuarios_df) > 0:
             # Mostrar tabla con opciones
             st.dataframe(usuarios_df, use_container_width=True, hide_index=True)
