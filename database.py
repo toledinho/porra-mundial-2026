@@ -134,6 +134,24 @@ class TursoCursor:
                 self._results = []
 
             # Construir description para pandas (SIEMPRE necesario)
+            # Debug completo
+            print(f"=== DEBUG TURSO ===")
+            print(f"result type: {type(result)}")
+            print(f"result attributes: {dir(result)}")
+            if hasattr(result, 'cols'):
+                print(f"result.cols: {result.cols}")
+                if result.cols and len(result.cols) > 0:
+                    print(f"result.cols[0] type: {type(result.cols[0])}")
+                    print(f"result.cols[0]: {result.cols[0]}")
+                    if hasattr(result.cols[0], '__dict__'):
+                        print(f"result.cols[0].__dict__: {result.cols[0].__dict__}")
+            if self._results and len(self._results) > 0:
+                print(f"result.rows[0] type: {type(self._results[0])}")
+                print(f"result.rows[0]: {self._results[0]}")
+                if hasattr(self._results[0], 'keys'):
+                    print(f"result.rows[0].keys(): {list(self._results[0].keys())}")
+            print(f"===================")
+
             # SIEMPRE intentar obtener de la primera fila primero (más confiable)
             if self._results and len(self._results) > 0:
                 if hasattr(self._results[0], 'keys'):
