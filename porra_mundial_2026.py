@@ -740,72 +740,123 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# Sistema de autenticación simple para admin
+# Sistema de autenticación con tres niveles
 def check_password():
-    """Retorna True si el usuario ha introducido la contraseña correcta"""
+    """Retorna el nivel de acceso: 'admin', 'responsable', o None"""
 
     def password_entered():
-        """Verifica si la contraseña introducida es correcta"""
-        if st.session_state["password"] == st.secrets.get("admin_password", "admin123"):
+        """Verifica la contraseña introducida"""
+        password = st.session_state["password"]
+        admin_pwd = st.secrets.get("admin_password", "admin123")
+        responsable_pwd = st.secrets.get("responsable_password", "peña2026")
+
+        if password == admin_pwd:
+            st.session_state["user_level"] = "admin"
             st.session_state["password_correct"] = True
-            del st.session_state["password"]  # No almacenar la contraseña
+        elif password == responsable_pwd:
+            st.session_state["user_level"] = "responsable"
+            st.session_state["password_correct"] = True
         else:
             st.session_state["password_correct"] = False
+            st.session_state["user_level"] = None
+
+        if "password" in st.session_state:
+            del st.session_state["password"]
 
     # Inicializar estado
     if "password_correct" not in st.session_state:
         st.session_state["password_correct"] = False
+        st.session_state["user_level"] = None
 
-    # Retornar True si ya está autenticado
-    if st.session_state["password_correct"]:
-        return True
+    # Si ya está autenticado, mostrar info y botón de logout
+    if st.session_state.get("password_correct", False):
+        with st.sidebar:
+            if st.session_state["user_level"] == "admin":
+                st.success("🔐 Sesión: **Administrador**")
+            else:
+                st.success("👤 Sesión: **Responsable Peña**")
 
-    # Mostrar formulario de login en sidebar
+            if st.button("🚪 Cerrar Sesión"):
+                st.session_state["password_correct"] = False
+                st.session_state["user_level"] = None
+                st.rerun()
+
+            st.markdown("---")
+
+        return st.session_state["user_level"]
+
+    # Mostrar formulario de login
     with st.sidebar:
-        st.markdown("### 🔐 Acceso Administrador")
+        st.markdown("### 🔐 Iniciar Sesión")
         st.text_input(
             "Contraseña",
             type="password",
             on_change=password_entered,
-            key="password"
+            key="password",
+            placeholder="Ingresa tu contraseña"
         )
 
         if "password_correct" in st.session_state and not st.session_state["password_correct"]:
             st.error("❌ Contraseña incorrecta")
 
         st.markdown("---")
-        st.info("ℹ️ Las secciones de **Usuarios** y **Nueva Jornada** requieren autenticación de administrador.")
+        st.info("""
+        **Niveles de acceso:**
 
-    return False
+        👤 **Responsable Peña**
+        - Ingresar pronósticos
+
+        🔐 **Administrador**
+        - Gestión completa
+        """)
+
+    return None
 
 # Verificar autenticación
-is_admin = check_password()
+user_level = check_password()
+is_admin = (user_level == "admin")
+is_responsable = (user_level == "responsable")
+is_authenticated = (is_admin or is_responsable)
 
 # Header
 st.markdown('<div class="main-header">⚽ Porra Mundial 2026 ⚽</div>', unsafe_allow_html=True)
 
-# Tabs principales - mostrar solo públicas si no es admin
+# Tabs principales - mostrar según nivel de acceso
 if is_admin:
-    tab1, tab2, tab3, tab4, tab5, tab6, tab7 = st.tabs([
+    # Admin ve todo
+    tab1, tab2, tab3, tab4, tab5, tab6, tab7, tab8 = st.tabs([
         "📊 Inicio",
         "👥 Usuarios",
         "➕ Nueva Jornada",
+        "📝 Ingresar Pronósticos",
         "⚽ Resultados",
         "🏆 Clasificaciones",
         "📈 Estadísticas",
         "📜 Histórico"
     ])
+elif is_responsable:
+    # Responsable ve solo ingresar pronósticos y consultas
+    tab1, tab4, tab6, tab7, tab8, tab_info = st.tabs([
+        "📊 Inicio",
+        "📝 Ingresar Pronósticos",
+        "🏆 Clasificaciones",
+        "📈 Estadísticas",
+        "📜 Histórico",
+        "ℹ️ Info"
+    ])
+    # Crear tabs dummy
+    tab2 = tab3 = tab5 = None
 else:
-    # Solo mostrar pestañas públicas
-    tab1, tab4, tab5, tab6, tab7 = st.tabs([
+    # Usuarios públicos
+    tab1, tab6, tab7, tab8, tab_info = st.tabs([
         "📊 Inicio",
         "🏆 Clasificaciones",
         "📈 Estadísticas",
         "📜 Histórico",
         "ℹ️ Info"
     ])
-    # Crear tabs dummy para mantener la estructura del código
-    tab2 = tab3 = None
+    # Crear tabs dummy
+    tab2 = tab3 = tab4 = tab5 = None
 
 # TAB 1: INICIO
 with tab1:
@@ -1085,29 +1136,59 @@ if tab3 is not None:
             })
 
         st.markdown("---")
-        st.markdown("### 📁 Paso 3: Cargar Pronósticos de Participantes")
+        st.markdown("### 📁 Paso 3: Modo de Creación")
 
-        st.markdown("""
-        **Formato del archivo Excel/CSV:**
-        - **Columna 1:** Participante (debe coincidir con los nombres registrados)
-        - **Columnas siguientes:** Predicciones en formato `X-X` (ej: `2-1`)
-        - El número de columnas debe coincidir con el número de partidos configurados arriba
+        modo_creacion = st.radio(
+            "¿Cómo quieres crear la jornada?",
+            options=["crear_vacia", "cargar_archivo"],
+            format_func=lambda x: "🎯 Crear jornada vacía (para rellenar en la peña)" if x == "crear_vacia" else "📁 Cargar archivo con pronósticos",
+            key="modo_creacion"
+        )
 
-        **Ejemplo para 5 partidos:**
-        ```
-        Participante | Pred1 | Pred2 | Pred3 | Pred4 | Pred5
-        Juan Pérez  | 2-1   | 0-0   | 1-1   | 3-0   | 2-2
-        María García| 1-1   | 1-0   | 2-1   | 2-1   | 1-1
-        ```
-        """)
+        archivo = None
 
-        archivo = st.file_uploader("Selecciona archivo Excel o CSV con pronósticos",
-                                   type=['xlsx', 'xls', 'csv'],
-                                   help="Archivo con participantes y sus pronósticos",
-                                   key="upload_jornada")
+        if modo_creacion == "crear_vacia":
+            st.info("""
+            **Modo: Jornada vacía**
+
+            Se creará la jornada con los partidos configurados pero sin pronósticos.
+            Los usuarios podrán ingresar sus pronósticos desde la peña usando la sección "📝 Ingresar Pronósticos".
+
+            La jornada se creará en estado **"Abierta"** para que se puedan ingresar pronósticos.
+            """)
+
+            abrir_pronosticos = True  # Por defecto abierta
+
+        else:  # cargar_archivo
+            st.markdown("""
+            **Formato del archivo Excel/CSV:**
+            - **Columna 1:** Participante (debe coincidir con los nombres registrados)
+            - **Columnas siguientes:** Predicciones en formato `X-X` (ej: `2-1`)
+            - El número de columnas debe coincidir con el número de partidos configurados arriba
+
+            **Ejemplo para 5 partidos:**
+            ```
+            Participante | Pred1 | Pred2 | Pred3 | Pred4 | Pred5
+            Juan Pérez  | 2-1   | 0-0   | 1-1   | 3-0   | 2-2
+            María García| 1-1   | 1-0   | 2-1   | 2-1   | 1-1
+            ```
+            """)
+
+            archivo = st.file_uploader("Selecciona archivo Excel o CSV con pronósticos",
+                                       type=['xlsx', 'xls', 'csv'],
+                                       help="Archivo con participantes y sus pronósticos",
+                                       key="upload_jornada")
+
+            abrir_pronosticos = st.checkbox(
+                "Mantener jornada abierta para más pronósticos",
+                value=False,
+                help="Si marcas esto, otros usuarios podrán seguir ingresando pronósticos"
+            )
 
         # Validaciones antes de crear
-        if st.button("🚀 Crear Jornada", type="primary", disabled=not archivo):
+        puede_crear = (modo_creacion == "crear_vacia") or (archivo is not None)
+
+        if st.button("🚀 Crear Jornada", type="primary", disabled=not puede_crear):
             # Validar que se hayan ingresado todos los datos
             errores = []
 
@@ -1140,10 +1221,16 @@ if tab3 is not None:
                     # Crear jornada
                     jornada_id = crear_jornada(numero_jornada, nombre_jornada, 1 if es_estrella else 0, fase)
 
-                    # Crear partidos manualmente
+                    # Establecer estado de pronósticos
+                    estado = 'abierta' if abrir_pronosticos else 'cerrada'
+
                     conn = get_conn()
                     c = conn.cursor()
 
+                    # Actualizar estado de jornada
+                    c.execute("UPDATE jornadas SET estado_pronosticos = ? WHERE id = ?", (estado, jornada_id))
+
+                    # Crear partidos manualmente
                     partidos_ids = []
                     for p in partidos_validos:
                         c.execute("""INSERT INTO partidos (jornada_id, numero_partido, nombre, resultado_real, es_doble)
@@ -1154,17 +1241,175 @@ if tab3 is not None:
                     conn.commit()
                     conn.close()
 
-                    # Procesar archivo de pronósticos
-                    success, message = procesar_archivo_pronosticos(archivo, jornada_id, partidos_ids, partidos_validos)
+                    # Procesar archivo de pronósticos si hay
+                    if archivo:
+                        success, message = procesar_archivo_pronosticos(archivo, jornada_id, partidos_ids, partidos_validos)
 
-                    if success:
-                        st.success(f"✅ {message}")
-                        st.balloons()
+                        if success:
+                            st.success(f"✅ {message}")
+                            if abrir_pronosticos:
+                                st.info("ℹ️ La jornada está **abierta** para que se puedan ingresar más pronósticos.")
+                            st.balloons()
+                        else:
+                            st.error(f"❌ {message}")
                     else:
-                        st.error(f"❌ {message}")
+                        # Modo jornada vacía
+                        st.success(f"✅ Jornada creada correctamente!")
+                        st.success(f"🎯 La jornada está **abierta** para ingresar pronósticos.")
+                        st.info("Los usuarios pueden ingresar sus pronósticos desde la sección '📝 Ingresar Pronósticos'")
+                        st.balloons()
 
-# TAB 4: RESULTADOS (Actualizar resultados de jornadas existentes)
-with tab4:
+# TAB 4: INGRESAR PRONÓSTICOS (Responsable y Admin)
+if tab4 is not None:
+  with tab4:
+    st.header("📝 Ingresar Pronósticos")
+
+    # Obtener jornadas abiertas
+    conn = get_conn()
+    jornadas_abiertas = pd.read_sql_query(
+        "SELECT * FROM jornadas WHERE estado_pronosticos = 'abierta' ORDER BY numero DESC",
+        conn
+    )
+    conn.close()
+
+    if len(jornadas_abiertas) == 0:
+        st.warning("⚠️ No hay jornadas abiertas para ingresar pronósticos.")
+        st.info("El administrador debe crear y abrir una jornada primero.")
+    else:
+        # Seleccionar jornada
+        jornada_seleccionada = st.selectbox(
+            "Selecciona la jornada",
+            options=jornadas_abiertas['id'].tolist(),
+            format_func=lambda x: f"Jornada {jornadas_abiertas[jornadas_abiertas['id'] == x]['numero'].iloc[0]} - {jornadas_abiertas[jornadas_abiertas['id'] == x]['nombre'].iloc[0]}",
+            key="jornada_pronosticos"
+        )
+
+        jornada_info = jornadas_abiertas[jornadas_abiertas['id'] == jornada_seleccionada].iloc[0]
+
+        st.markdown(f"### {jornada_info['nombre']}")
+        st.markdown(f"**Fase:** {jornada_info['fase']}")
+        if jornada_info['es_estrella']:
+            st.markdown("⭐ **Jornada Estrella** - Un partido puntúa doble")
+
+        st.markdown("---")
+
+        # Buscar usuario
+        usuarios_activos = get_usuarios()
+        usuario_nombres = usuarios_activos['nombre'].tolist()
+
+        col_search, col_button = st.columns([3, 1])
+
+        with col_search:
+            usuario_seleccionado = st.selectbox(
+                "Busca tu nombre",
+                options=[""] + usuario_nombres,
+                format_func=lambda x: "Selecciona tu nombre..." if x == "" else x,
+                key="buscar_usuario"
+            )
+
+        if usuario_seleccionado and usuario_seleccionado != "":
+            st.markdown(f"### Pronósticos de: **{usuario_seleccionado}**")
+
+            # Obtener partidos de la jornada
+            conn = get_conn()
+            partidos_df = pd.read_sql_query(
+                "SELECT * FROM partidos WHERE jornada_id = ? ORDER BY numero_partido",
+                conn, params=(jornada_seleccionada,)
+            )
+
+            # Verificar si ya tiene pronósticos
+            pronosticos_existentes = pd.read_sql_query(
+                """SELECT p.partido_id, p.prediccion
+                   FROM pronosticos p
+                   WHERE p.participante = ? AND p.partido_id IN (SELECT id FROM partidos WHERE jornada_id = ?)""",
+                conn, params=(usuario_seleccionado, jornada_seleccionada)
+            )
+            conn.close()
+
+            # Crear diccionario de pronósticos existentes
+            pron_dict = {}
+            if len(pronosticos_existentes) > 0:
+                pron_dict = dict(zip(pronosticos_existentes['partido_id'], pronosticos_existentes['prediccion']))
+
+            # Formulario para ingresar pronósticos
+            with st.form(key=f"form_pronosticos_{usuario_seleccionado}"):
+                pronosticos = {}
+
+                for _, partido in partidos_df.iterrows():
+                    col_nombre, col_pred = st.columns([3, 1])
+
+                    with col_nombre:
+                        doble_text = " ⭐ (Doble)" if partido['es_doble'] else ""
+                        st.markdown(f"**Partido {partido['numero_partido']}:** {partido['nombre']}{doble_text}")
+
+                    with col_pred:
+                        valor_actual = pron_dict.get(partido['id'], "")
+                        prediccion = st.text_input(
+                            f"Predicción",
+                            value=valor_actual,
+                            placeholder="Ej: 2-1",
+                            key=f"pred_{partido['id']}",
+                            label_visibility="collapsed"
+                        )
+                        pronosticos[partido['id']] = prediccion
+
+                submitted = st.form_submit_button("💾 Guardar Pronósticos", type="primary", use_container_width=True)
+
+                if submitted:
+                    # Validar que todos los pronósticos estén completos
+                    errores = []
+                    for partido_id, pred in pronosticos.items():
+                        if not pred or pred.strip() == "":
+                            errores.append("Todos los partidos deben tener pronóstico")
+                            break
+                        if '-' not in pred or not all(x.strip().isdigit() for x in pred.split('-')):
+                            errores.append(f"Formato incorrecto: {pred}. Usa formato X-X (ej: 2-1)")
+                            break
+
+                    if errores:
+                        for error in errores:
+                            st.error(f"❌ {error}")
+                    else:
+                        # Guardar pronósticos
+                        conn = get_conn()
+                        c = conn.cursor()
+
+                        for partido_id, prediccion in pronosticos.items():
+                            prediccion = prediccion.strip()
+
+                            # Verificar si ya existe pronóstico
+                            c.execute(
+                                "SELECT id FROM pronosticos WHERE partido_id = ? AND participante = ?",
+                                (partido_id, usuario_seleccionado)
+                            )
+                            existe = c.fetchone()
+
+                            if existe:
+                                # Actualizar
+                                c.execute(
+                                    "UPDATE pronosticos SET prediccion = ? WHERE partido_id = ? AND participante = ?",
+                                    (prediccion, partido_id, usuario_seleccionado)
+                                )
+                            else:
+                                # Insertar nuevo (sin puntos aún)
+                                c.execute(
+                                    "INSERT INTO pronosticos (partido_id, participante, prediccion, puntos) VALUES (?, ?, ?, 0)",
+                                    (partido_id, usuario_seleccionado, prediccion)
+                                )
+
+                        conn.commit()
+                        conn.close()
+
+                        st.success(f"✅ Pronósticos de **{usuario_seleccionado}** guardados correctamente!")
+                        st.balloons()
+
+            # Mostrar si ya tiene pronósticos guardados
+            if len(pron_dict) > 0:
+                st.info(f"ℹ️ Este usuario ya tiene pronósticos guardados para esta jornada. Puedes modificarlos y volver a guardar.")
+
+# TAB 5: RESULTADOS (Actualizar resultados de jornadas existentes - Solo Admin)
+if tab5 is not None:
+  with tab5:
     st.header("⚽ Actualizar Resultados de Partidos")
 
     jornadas = get_jornadas()
@@ -1180,6 +1425,40 @@ with tab4:
             format_func=lambda x: f"{jornadas[jornadas['id'] == x]['nombre'].iloc[0]} - {jornadas[jornadas['id'] == x]['fase'].iloc[0]}",
             key="jornada_resultados"
         )
+
+        # Obtener info de la jornada
+        jornada_info = jornadas[jornadas['id'] == jornada_seleccionada].iloc[0]
+        estado_actual = jornada_info.get('estado_pronosticos', 'cerrada')
+
+        # Controles de estado de jornada
+        st.markdown("---")
+        col_estado, col_boton = st.columns([2, 1])
+
+        with col_estado:
+            if estado_actual == 'abierta':
+                st.success("🟢 **Estado:** Abierta para pronósticos")
+            else:
+                st.info("🔒 **Estado:** Cerrada para pronósticos")
+
+        with col_boton:
+            if estado_actual == 'abierta':
+                if st.button("🔒 Cerrar Pronósticos", use_container_width=True):
+                    conn = get_conn()
+                    c = conn.cursor()
+                    c.execute("UPDATE jornadas SET estado_pronosticos = 'cerrada' WHERE id = ?", (jornada_seleccionada,))
+                    conn.commit()
+                    conn.close()
+                    st.success("✅ Jornada cerrada")
+                    st.experimental_rerun()
+            else:
+                if st.button("🟢 Abrir Pronósticos", use_container_width=True):
+                    conn = get_conn()
+                    c = conn.cursor()
+                    c.execute("UPDATE jornadas SET estado_pronosticos = 'abierta' WHERE id = ?", (jornada_seleccionada,))
+                    conn.commit()
+                    conn.close()
+                    st.success("✅ Jornada abierta")
+                    st.experimental_rerun()
 
         # Obtener partidos de esa jornada
         conn = get_conn()
@@ -1244,8 +1523,8 @@ with tab4:
         else:
             st.warning("Esta jornada no tiene partidos registrados")
 
-# TAB 5: CLASIFICACIONES
-with tab5:
+# TAB 6: CLASIFICACIONES
+with tab6:
     st.header("🏆 Clasificaciones")
 
     clasificacion_general = get_clasificacion_general()
@@ -1294,8 +1573,8 @@ with tab5:
     else:
         st.info("No hay datos de clasificación aún. Crea una jornada primero.")
 
-# TAB 6: ESTADÍSTICAS
-with tab6:
+# TAB 7: ESTADÍSTICAS
+with tab7:
     st.header("📈 Estadísticas y Análisis")
 
     clasificacion = get_clasificacion_general()
@@ -1386,8 +1665,8 @@ with tab6:
     else:
         st.info("No hay estadísticas disponibles aún. Crea una jornada primero.")
 
-# TAB 7: HISTÓRICO
-with tab7:
+# TAB 8: HISTÓRICO
+with tab8:
     st.header("📜 Histórico de Jornadas")
 
     jornadas = get_jornadas()
@@ -1432,9 +1711,9 @@ with tab7:
     else:
         st.info("No hay jornadas registradas en el histórico.")
 
-# TAB INFO (Solo visible para usuarios no autenticados)
-if not is_admin and 'tab7' in locals():
-    with tab7:
+# TAB INFO (Solo visible para usuarios no autenticados o responsables)
+if not is_admin and 'tab_info' in locals():
+    with tab_info:
         st.header("ℹ️ Información de la Porra")
 
         st.markdown("""
