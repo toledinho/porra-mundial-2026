@@ -135,6 +135,17 @@ class TursoCursor:
 
             # Construir description para pandas (SIEMPRE necesario)
             # Turso devuelve cols como lista de dicts: [{"name": "id", "decltype": "INTEGER"}, ...]
+
+            # DEBUG
+            import streamlit as st
+            st.write("🔍 DEBUG execute - hasattr cols:", hasattr(result, 'cols'))
+            if hasattr(result, 'cols'):
+                st.write("🔍 DEBUG execute - result.cols:", result.cols)
+                st.write("🔍 DEBUG execute - type(result.cols):", type(result.cols))
+                if result.cols and len(result.cols) > 0:
+                    st.write("🔍 DEBUG execute - type(result.cols[0]):", type(result.cols[0]))
+                    st.write("🔍 DEBUG execute - result.cols[0]:", result.cols[0])
+
             if hasattr(result, 'cols') and result.cols:
                 # cols es una lista de objetos/dicts con atributo 'name'
                 columns = []
@@ -148,6 +159,7 @@ class TursoCursor:
                     else:
                         # Fallback
                         columns.append(str(col))
+                st.write("🔍 DEBUG execute - columns extraídas:", columns)
                 self.description = [(col, None, None, None, None, None, None) for col in columns]
             # Si no hay cols, intentar extraer de rows (menos confiable)
             elif self._results and len(self._results) > 0:
