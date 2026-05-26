@@ -6,7 +6,12 @@ import os
 import streamlit as st
 
 # Determinar si usar Turso o SQLite local
-USE_TURSO = os.getenv("USE_TURSO", "false").lower() == "true"
+# Intentar leer de secrets primero, luego de variable de entorno
+try:
+    import streamlit as st
+    USE_TURSO = st.secrets.get("USE_TURSO", os.getenv("USE_TURSO", "false")).lower() == "true"
+except:
+    USE_TURSO = os.getenv("USE_TURSO", "false").lower() == "true"
 
 if USE_TURSO:
     # Usar Turso (en producción)
