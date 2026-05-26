@@ -971,7 +971,7 @@ if tab2 is not None:
                         success, mensaje = actualizar_nombre_usuario(usuario_editar, nuevo_nombre_edit.strip())
                         if success:
                             st.success(mensaje)
-                            st.experimental_rerun()
+                            st.rerun()
                         else:
                             st.error(mensaje)
                     elif nuevo_nombre_edit.strip() == usuario_editar:
@@ -991,7 +991,7 @@ if tab2 is not None:
                 if st.button("🗑️ Desactivar Usuario", type="secondary"):
                     eliminar_usuario(usuario_eliminar)
                     st.success(f"Usuario '{usuario_eliminar}' desactivado")
-                    st.experimental_rerun()
+                    st.rerun()
             else:
                 st.info("No hay usuarios activos para desactivar")
 
@@ -1005,7 +1005,7 @@ if tab2 is not None:
                 if st.button("♻️ Reactivar Usuario", type="secondary"):
                     reactivar_usuario(usuario_reactivar)
                     st.success(f"Usuario '{usuario_reactivar}' reactivado")
-                    st.experimental_rerun()
+                    st.rerun()
         else:
             st.info("No hay usuarios registrados. Añade el primero abajo.")
 
@@ -1023,7 +1023,7 @@ if tab2 is not None:
                     success, mensaje = crear_usuario(nuevo_nombre.strip(), nuevo_email.strip())
                     if success:
                         st.success(mensaje)
-                        st.experimental_rerun()
+                        st.rerun()
                     else:
                         st.error(mensaje)
                 else:
@@ -1055,7 +1055,7 @@ if tab2 is not None:
             success, mensaje = cargar_usuarios_desde_archivo(archivo_usuarios)
             if success:
                 st.success(mensaje)
-                st.experimental_rerun()
+                st.rerun()
             else:
                 st.error(mensaje)
 
@@ -1449,7 +1449,7 @@ if tab5 is not None:
                     conn.commit()
                     conn.close()
                     st.success("✅ Jornada cerrada")
-                    st.experimental_rerun()
+                    st.rerun()
             else:
                 if st.button("🟢 Abrir Pronósticos", use_container_width=True):
                     conn = get_conn()
@@ -1458,7 +1458,7 @@ if tab5 is not None:
                     conn.commit()
                     conn.close()
                     st.success("✅ Jornada abierta")
-                    st.experimental_rerun()
+                    st.rerun()
 
         # Obtener partidos de esa jornada
         conn = get_conn()
@@ -1517,7 +1517,7 @@ if tab5 is not None:
                     success = actualizar_resultados_jornada(jornada_seleccionada, resultados_nuevos)
                     if success:
                         st.success("✅ Resultados actualizados y puntos recalculados correctamente")
-                        st.experimental_rerun()
+                        st.rerun()
                     else:
                         st.error("❌ Error al actualizar resultados")
         else:

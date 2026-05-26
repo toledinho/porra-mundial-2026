@@ -25,10 +25,6 @@ if USE_TURSO:
         if not TURSO_URL or not TURSO_TOKEN:
             raise ValueError("TURSO_URL y TURSO_TOKEN deben estar configurados")
 
-        # Convertir URL de libsql:// a https:// para evitar problemas con WebSocket
-        if TURSO_URL.startswith("libsql://"):
-            TURSO_URL = TURSO_URL.replace("libsql://", "https://")
-
         # Cliente de Turso global
         _turso_client = None
 
@@ -72,6 +68,7 @@ if USE_TURSO:
                 self.client = client
                 self.lastrowid = None
                 self._results = None
+                self.description = None
 
             def execute(self, query, params=None):
                 if params is None:
@@ -87,8 +84,18 @@ if USE_TURSO:
                     # Manejar resultados
                     if hasattr(result, 'rows'):
                         self._results = result.rows
+                        # Construir description para pandas
+                        if self._results and len(self._results) > 0:
+                            if hasattr(self._results[0], 'keys'):
+                                columns = list(self._results[0].keys())
+                            else:
+                                columns = [f"column_{i}" for i in range(len(self._results[0]))]
+                            self.description = [(col, None, None, None, None, None, None) for col in columns]
+                        else:
+                            self.description = None
                     else:
                         self._results = []
+                        self.description = None
 
                     # Obtener lastrowid si es un INSERT
                     if query.strip().upper().startswith('INSERT'):
