@@ -1067,6 +1067,60 @@ if tab2 is not None:
             else:
                 st.error(mensaje)
 
+    # SECCIÓN DE ADMINISTRACIÓN: Eliminar Usuario
+    st.markdown("---")
+    st.markdown("### 🗑️ Zona de Administración")
+
+    with st.expander("⚠️ Eliminar Usuario Permanentemente", expanded=False):
+        st.error("""
+        **ADVERTENCIA CRÍTICA:** Esta acción eliminará permanentemente:
+        - El usuario seleccionado
+        - **TODOS sus pronósticos** en todas las jornadas
+        - Su historial completo
+
+        Esta acción **NO se puede deshacer** y afectará las clasificaciones.
+        """)
+
+        usuarios_activos = get_usuarios()
+        if len(usuarios_activos) > 0:
+            col_select, col_confirm = st.columns(2)
+
+            with col_select:
+                usuario_eliminar = st.selectbox(
+                    "Selecciona usuario a eliminar",
+                    options=usuarios_activos['nombre'].tolist(),
+                    key="usuario_eliminar_select"
+                )
+
+            with col_confirm:
+                confirmar_eliminar_usuario = st.text_input(
+                    "Escribe 'ELIMINAR' para confirmar",
+                    key="confirmar_eliminar_usuario"
+                )
+
+            if st.button("🗑️ Eliminar Usuario Definitivamente", type="secondary", disabled=(confirmar_eliminar_usuario != "ELIMINAR")):
+                try:
+                    conn = get_conn()
+                    c = conn.cursor()
+
+                    # Eliminar todos los pronósticos del usuario
+                    c.execute("DELETE FROM pronosticos WHERE LOWER(participante) = LOWER(?)", (usuario_eliminar,))
+
+                    # Eliminar el usuario
+                    c.execute("DELETE FROM usuarios WHERE LOWER(nombre) = LOWER(?)", (usuario_eliminar,))
+
+                    conn.commit()
+                    conn.close()
+
+                    st.success(f"✅ Usuario '{usuario_eliminar}' y todos sus pronósticos eliminados correctamente")
+                    st.balloons()
+                    st.rerun()
+
+                except Exception as e:
+                    st.error(f"❌ Error al eliminar usuario: {e}")
+        else:
+            st.info("No hay usuarios para eliminar")
+
 # TAB 3: NUEVA JORNADA (Solo Admin)
 if tab3 is not None:
   with tab3:
@@ -1118,23 +1172,55 @@ if tab3 is not None:
         partidos_data = []
         for i in range(num_partidos):
             st.markdown(f"**Partido {i+1}** {'⭐ (Doble)' if es_estrella and partido_doble == i+1 else ''}")
-            col_nombre, col_resultado = st.columns([3, 1])
 
-            with col_nombre:
-                nombre_partido = st.text_input(
-                    f"Nombre del partido {i+1}",
-                    placeholder="Ej: España vs Alemania",
-                    key=f"partido_nombre_{i}",
+            # Layout: Equipo Local [goles] - [goles] Equipo Visitante
+            col_local, col_gol_local, col_vs, col_gol_visit, col_visitante = st.columns([3, 1, 0.5, 1, 3])
+
+            with col_local:
+                equipo_local = st.text_input(
+                    f"Equipo Local {i+1}",
+                    placeholder="Ej: España",
+                    key=f"equipo_local_{i}",
                     label_visibility="collapsed"
                 )
 
-            with col_resultado:
-                resultado = st.text_input(
-                    f"Resultado {i+1}",
-                    placeholder="Ej: 2-1",
-                    key=f"partido_resultado_{i}",
+            with col_gol_local:
+                goles_local = st.text_input(
+                    f"Goles Local {i+1}",
+                    placeholder="0",
+                    key=f"goles_local_{i}",
                     label_visibility="collapsed"
                 )
+
+            with col_vs:
+                st.markdown("<div style='text-align: center; padding-top: 8px;'>-</div>", unsafe_allow_html=True)
+
+            with col_gol_visit:
+                goles_visitante = st.text_input(
+                    f"Goles Visitante {i+1}",
+                    placeholder="0",
+                    key=f"goles_visit_{i}",
+                    label_visibility="collapsed"
+                )
+
+            with col_visitante:
+                equipo_visitante = st.text_input(
+                    f"Equipo Visitante {i+1}",
+                    placeholder="Ej: Alemania",
+                    key=f"equipo_visit_{i}",
+                    label_visibility="collapsed"
+                )
+
+            # Construir nombre del partido y resultado
+            if equipo_local.strip() and equipo_visitante.strip():
+                nombre_partido = f"{equipo_local.strip()} vs {equipo_visitante.strip()}"
+            else:
+                nombre_partido = ""
+
+            if goles_local.strip() and goles_visitante.strip():
+                resultado = f"{goles_local.strip()}-{goles_visitante.strip()}"
+            else:
+                resultado = ""
 
             partidos_data.append({
                 'numero': i + 1,
@@ -1344,22 +1430,51 @@ if tab4 is not None:
                 pronosticos = {}
 
                 for _, partido in partidos_df.iterrows():
-                    col_nombre, col_pred = st.columns([3, 1])
+                    doble_text = " ⭐ (Doble)" if partido['es_doble'] else ""
+                    st.markdown(f"**Partido {partido['numero_partido']}**{doble_text}")
 
-                    with col_nombre:
-                        doble_text = " ⭐ (Doble)" if partido['es_doble'] else ""
-                        st.markdown(f"**Partido {partido['numero_partido']}:** {partido['nombre']}{doble_text}")
+                    # Extraer equipos del nombre
+                    nombre_partido = partido['nombre']
+                    equipos = nombre_partido.split(' vs ') if ' vs ' in nombre_partido else [nombre_partido, '']
 
-                    with col_pred:
-                        valor_actual = pron_dict.get(partido['id'], "")
-                        prediccion = st.text_input(
-                            f"Predicción",
-                            value=valor_actual,
-                            placeholder="Ej: 2-1",
-                            key=f"pred_{partido['id']}",
+                    # Extraer pronóstico actual si existe
+                    valor_actual = pron_dict.get(partido['id'], "")
+                    goles = valor_actual.split('-') if valor_actual and '-' in valor_actual else ['', '']
+
+                    col_local, col_gol_local, col_vs, col_gol_visit, col_visitante = st.columns([3, 1, 0.5, 1, 3])
+
+                    with col_local:
+                        st.markdown(f"<div style='padding-top: 8px;'>{equipos[0] if len(equipos) > 0 else ''}</div>", unsafe_allow_html=True)
+
+                    with col_gol_local:
+                        gol_local_pred = st.text_input(
+                            f"Goles Local Pred {partido['id']}",
+                            value=goles[0].strip() if len(goles) > 0 else "",
+                            placeholder="0",
+                            key=f"gol_local_pred_{partido['id']}",
                             label_visibility="collapsed"
                         )
-                        pronosticos[partido['id']] = prediccion
+
+                    with col_vs:
+                        st.markdown("<div style='text-align: center; padding-top: 8px;'>-</div>", unsafe_allow_html=True)
+
+                    with col_gol_visit:
+                        gol_visit_pred = st.text_input(
+                            f"Goles Visitante Pred {partido['id']}",
+                            value=goles[1].strip() if len(goles) > 1 else "",
+                            placeholder="0",
+                            key=f"gol_visit_pred_{partido['id']}",
+                            label_visibility="collapsed"
+                        )
+
+                    with col_visitante:
+                        st.markdown(f"<div style='padding-top: 8px;'>{equipos[1] if len(equipos) > 1 else ''}</div>", unsafe_allow_html=True)
+
+                    # Construir predicción final
+                    if gol_local_pred.strip() and gol_visit_pred.strip():
+                        pronosticos[partido['id']] = f"{gol_local_pred.strip()}-{gol_visit_pred.strip()}"
+                    else:
+                        pronosticos[partido['id']] = ""
 
                 submitted = st.form_submit_button("💾 Guardar Pronósticos", type="primary", use_container_width=True)
 
@@ -1492,25 +1607,57 @@ if tab5 is not None:
             st.markdown("---")
             st.markdown("**Actualiza los resultados de los partidos:**")
 
-            resultados_nuevos = {}
-            for idx, partido in partidos_df.iterrows():
-                col_nombre, col_resultado = st.columns([3, 1])
+            with st.form(key="form_actualizar_resultados"):
+                resultados_nuevos = {}
+                for idx, partido in partidos_df.iterrows():
+                    st.markdown(f"**Partido {partido['numero_partido']}** {'⭐ (Doble)' if partido['es_doble'] else ''}")
 
-                with col_nombre:
-                    st.markdown(f"**Partido {partido['numero_partido']}:** {partido['nombre']} {'⭐ (Doble)' if partido['es_doble'] else ''}")
+                    # Extraer equipos del nombre (formato: "Equipo1 vs Equipo2")
+                    nombre_partido = partido['nombre']
+                    equipos = nombre_partido.split(' vs ') if ' vs ' in nombre_partido else [nombre_partido, '']
 
-                with col_resultado:
+                    # Extraer resultado actual si existe
                     resultado_actual = partido['resultado_real'] if partido['resultado_real'] else ""
-                    resultado_nuevo = st.text_input(
-                        f"Resultado",
-                        value=resultado_actual,
-                        placeholder="Ej: 2-1",
-                        key=f"resultado_update_{partido['id']}",
-                        label_visibility="collapsed"
-                    )
-                    resultados_nuevos[partido['id']] = resultado_nuevo
+                    goles = resultado_actual.split('-') if resultado_actual and '-' in resultado_actual else ['', '']
 
-            if st.button("💾 Guardar Resultados", type="primary"):
+                    col_local, col_gol_local, col_vs, col_gol_visit, col_visitante = st.columns([3, 1, 0.5, 1, 3])
+
+                    with col_local:
+                        st.markdown(f"<div style='padding-top: 8px;'>{equipos[0] if len(equipos) > 0 else ''}</div>", unsafe_allow_html=True)
+
+                    with col_gol_local:
+                        gol_local = st.text_input(
+                            f"Goles Local {partido['id']}",
+                            value=goles[0].strip() if len(goles) > 0 else "",
+                            placeholder="0",
+                            key=f"gol_local_update_{partido['id']}",
+                            label_visibility="collapsed"
+                        )
+
+                    with col_vs:
+                        st.markdown("<div style='text-align: center; padding-top: 8px;'>-</div>", unsafe_allow_html=True)
+
+                    with col_gol_visit:
+                        gol_visit = st.text_input(
+                            f"Goles Visitante {partido['id']}",
+                            value=goles[1].strip() if len(goles) > 1 else "",
+                            placeholder="0",
+                            key=f"gol_visit_update_{partido['id']}",
+                            label_visibility="collapsed"
+                        )
+
+                    with col_visitante:
+                        st.markdown(f"<div style='padding-top: 8px;'>{equipos[1] if len(equipos) > 1 else ''}</div>", unsafe_allow_html=True)
+
+                    # Construir resultado final
+                    if gol_local.strip() and gol_visit.strip():
+                        resultados_nuevos[partido['id']] = f"{gol_local.strip()}-{gol_visit.strip()}"
+                    else:
+                        resultados_nuevos[partido['id']] = ""
+
+                submitted = st.form_submit_button("💾 Guardar Resultados", type="primary", use_container_width=True)
+
+            if submitted:
                 # Validar formatos
                 errores = []
                 for partido_id, resultado in resultados_nuevos.items():
@@ -1530,6 +1677,59 @@ if tab5 is not None:
                         st.error("❌ Error al actualizar resultados")
         else:
             st.warning("Esta jornada no tiene partidos registrados")
+
+        # SECCIÓN DE ADMINISTRACIÓN: Eliminar Jornada
+        st.markdown("---")
+        st.markdown("### 🗑️ Zona de Administración")
+
+        with st.expander("⚠️ Eliminar Jornada Completa", expanded=False):
+            st.warning("""
+            **ADVERTENCIA:** Esta acción eliminará permanentemente:
+            - La jornada seleccionada
+            - Todos los partidos de esta jornada
+            - Todos los pronósticos de esta jornada
+
+            Esta acción **NO se puede deshacer**.
+            """)
+
+            col_confirm1, col_confirm2 = st.columns(2)
+
+            with col_confirm1:
+                confirmar_texto = st.text_input(
+                    "Escribe 'ELIMINAR' para confirmar",
+                    key="confirmar_eliminar_jornada"
+                )
+
+            with col_confirm2:
+                if st.button("🗑️ Eliminar Jornada Definitivamente", type="secondary", disabled=(confirmar_texto != "ELIMINAR")):
+                    try:
+                        conn = get_conn()
+                        c = conn.cursor()
+
+                        # Obtener IDs de partidos para eliminar pronósticos
+                        c.execute("SELECT id FROM partidos WHERE jornada_id = ?", (jornada_seleccionada,))
+                        partido_ids = [row[0] for row in c.fetchall()]
+
+                        # Eliminar pronósticos
+                        if partido_ids:
+                            placeholders = ','.join(['?' for _ in partido_ids])
+                            c.execute(f"DELETE FROM pronosticos WHERE partido_id IN ({placeholders})", partido_ids)
+
+                        # Eliminar partidos
+                        c.execute("DELETE FROM partidos WHERE jornada_id = ?", (jornada_seleccionada,))
+
+                        # Eliminar jornada
+                        c.execute("DELETE FROM jornadas WHERE id = ?", (jornada_seleccionada,))
+
+                        conn.commit()
+                        conn.close()
+
+                        st.success(f"✅ Jornada '{jornada_info['nombre']}' eliminada correctamente")
+                        st.balloons()
+                        st.rerun()
+
+                    except Exception as e:
+                        st.error(f"❌ Error al eliminar jornada: {e}")
 
 # TAB 6: CLASIFICACIONES
 with tab6:
