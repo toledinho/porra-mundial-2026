@@ -134,35 +134,20 @@ class TursoCursor:
                 self._results = []
 
             # Construir description para pandas (SIEMPRE necesario)
-            columns = None
-
-            # Intentar obtener nombres de columnas de diferentes atributos
-            if hasattr(result, 'columns') and result.columns:
-                # Puede ser una lista de strings directamente
-                columns = result.columns
-            elif hasattr(result, 'cols') and result.cols:
-                # Puede ser una lista de objetos con .name
-                columns = []
-                for col in result.cols:
-                    if hasattr(col, 'name'):
-                        columns.append(col.name)
-                    elif isinstance(col, dict) and 'name' in col:
-                        columns.append(col['name'])
-                    else:
-                        columns.append(str(col))
-
-            # Si no tenemos columnas, obtenerlas de la primera fila
-            if not columns and self._results and len(self._results) > 0:
+            # SIEMPRE intentar obtener de la primera fila primero (más confiable)
+            if self._results and len(self._results) > 0:
                 if hasattr(self._results[0], 'keys'):
                     columns = list(self._results[0].keys())
                 elif isinstance(self._results[0], dict):
                     columns = list(self._results[0].keys())
                 else:
                     columns = [f"column_{i}" for i in range(len(self._results[0]))]
-
-            # Construir description
-            if columns:
                 self.description = [(col, None, None, None, None, None, None) for col in columns]
+            # Si no hay rows, intentar de cols
+            elif hasattr(result, 'cols') and result.cols:
+                columns = [col.name if hasattr(col, 'name') else str(col) for col in result.cols]
+                self.description = [(col, None, None, None, None, None, None) for col in columns]
+            # Si no hay ni rows ni cols, description vacía
             else:
                 self.description = []
 
