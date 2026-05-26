@@ -138,13 +138,15 @@ class TursoCursor:
 
             # DEBUG
             import streamlit as st
+            st.write("🔍 DEBUG execute - type(result):", type(result))
+            st.write("🔍 DEBUG execute - dir(result):", dir(result))
             st.write("🔍 DEBUG execute - hasattr cols:", hasattr(result, 'cols'))
-            if hasattr(result, 'cols'):
-                st.write("🔍 DEBUG execute - result.cols:", result.cols)
-                st.write("🔍 DEBUG execute - type(result.cols):", type(result.cols))
-                if result.cols and len(result.cols) > 0:
-                    st.write("🔍 DEBUG execute - type(result.cols[0]):", type(result.cols[0]))
-                    st.write("🔍 DEBUG execute - result.cols[0]:", result.cols[0])
+            st.write("🔍 DEBUG execute - hasattr columns:", hasattr(result, 'columns'))
+
+            # Intentar acceder a diferentes atributos
+            for attr in ['cols', 'columns', 'column_names', 'fields', '_cols', '_columns']:
+                if hasattr(result, attr):
+                    st.write(f"🔍 DEBUG execute - result.{attr}:", getattr(result, attr))
 
             if hasattr(result, 'cols') and result.cols:
                 # cols es una lista de objetos/dicts con atributo 'name'
