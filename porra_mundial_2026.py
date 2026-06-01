@@ -2047,8 +2047,9 @@ with tab7:
     else:
         st.info("No hay estadísticas disponibles aún. Crea una jornada primero.")
 
-# TAB 8: HISTÓRICO
-with tab8:
+# TAB 8: HISTÓRICO (Solo Admin)
+if tab8 is not None:
+  with tab8:
     st.header("📜 Histórico de Jornadas")
 
     jornadas = get_jornadas()
