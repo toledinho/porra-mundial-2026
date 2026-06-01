@@ -858,28 +858,26 @@ if is_admin:
         "📜 Histórico"
     ])
 elif is_responsable:
-    # Responsable ve solo ingresar pronósticos y consultas
-    tab1, tab4, tab6, tab7, tab8, tab_info = st.tabs([
+    # Responsable ve solo ingresar pronósticos y consultas (sin Histórico)
+    tab1, tab4, tab6, tab7, tab_info = st.tabs([
         "📊 Inicio",
         "📝 Ingresar Pronósticos",
         "🏆 Clasificaciones",
         "📈 Estadísticas",
-        "📜 Histórico",
         "ℹ️ Info"
     ])
     # Crear tabs dummy
-    tab2 = tab3 = tab5 = None
+    tab2 = tab3 = tab5 = tab8 = None
 else:
-    # Usuarios públicos
-    tab1, tab6, tab7, tab8, tab_info = st.tabs([
+    # Usuarios públicos (sin Histórico)
+    tab1, tab6, tab7, tab_info = st.tabs([
         "📊 Inicio",
         "🏆 Clasificaciones",
         "📈 Estadísticas",
-        "📜 Histórico",
         "ℹ️ Info"
     ])
     # Crear tabs dummy
-    tab2 = tab3 = tab4 = tab5 = None
+    tab2 = tab3 = tab4 = tab5 = tab8 = None
 
 # TAB 1: INICIO
 with tab1:
