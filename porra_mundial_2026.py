@@ -2505,14 +2505,30 @@ with tab7:
         # Comparativa de participantes
         st.subheader("⚖️ Comparativa de Participantes")
 
-        fig_compare = px.bar(clasificacion.head(10),
-                            x='participante',
-                            y='puntos_totales',
-                            color='puntos_totales',
-                            labels={'participante': 'Participante', 'puntos_totales': 'Puntos Totales'},
-                            title='Top 10 Participantes')
+        # Multiselect para elegir participantes
+        todos_participantes = clasificacion['participante'].tolist()
 
-        st.plotly_chart(fig_compare, use_container_width=True)
+        participantes_seleccionados = st.multiselect(
+            "Selecciona los participantes a comparar",
+            options=todos_participantes,
+            default=todos_participantes[:5] if len(todos_participantes) >= 5 else todos_participantes,
+            help="Puedes seleccionar múltiples participantes para comparar"
+        )
+
+        if len(participantes_seleccionados) > 0:
+            # Filtrar clasificación por participantes seleccionados
+            clasificacion_filtrada = clasificacion[clasificacion['participante'].isin(participantes_seleccionados)]
+
+            fig_compare = px.bar(clasificacion_filtrada,
+                                x='participante',
+                                y='puntos_totales',
+                                color='puntos_totales',
+                                labels={'participante': 'Participante', 'puntos_totales': 'Puntos Totales'},
+                                title=f'Comparativa de {len(participantes_seleccionados)} Participantes')
+
+            st.plotly_chart(fig_compare, use_container_width=True)
+        else:
+            st.info("👆 Selecciona al menos un participante para ver la comparativa")
 
     else:
         st.info("No hay estadísticas disponibles aún. Crea una jornada primero.")
