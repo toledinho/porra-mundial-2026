@@ -922,12 +922,19 @@ with tab1:
         with col_vig2:
             st.markdown(f"**Fecha límite:** {jornada_vigente['fecha_fin']}")
 
+        # Debug temporal
+        st.caption(f"🔍 Debug: Buscando partidos para jornada_id = {jornada_vigente['id']} (tipo: {type(jornada_vigente['id'])})")
+
         # Obtener partidos de la jornada vigente
         conn = get_conn()
         partidos_vigentes = pd.read_sql_query(
             "SELECT * FROM partidos WHERE jornada_id = ? ORDER BY numero_partido",
-            conn, params=(jornada_vigente['id'],)
+            conn, params=(int(jornada_vigente['id']),)
         )
+
+        # Debug: ver cuántos partidos encontró
+        st.caption(f"🔍 Debug: Se encontraron {len(partidos_vigentes)} partidos")
+
         conn.close()
 
         if len(partidos_vigentes) > 0:
