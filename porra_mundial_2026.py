@@ -916,6 +916,44 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
+# Funciones auxiliares para manejo de sesión con localStorage
+def get_session_from_browser():
+    """Obtiene el nivel de usuario guardado en localStorage del navegador"""
+    from streamlit.components.v1 import html
+
+    # Script para leer localStorage y guardarlo en session_state
+    js_code = """
+    <script>
+        const userLevel = localStorage.getItem('porra_user_level');
+        if (userLevel) {
+            window.parent.postMessage({type: 'streamlit:setComponentValue', value: userLevel}, '*');
+        }
+    </script>
+    """
+    return html(js_code, height=0)
+
+def save_session_to_browser(user_level):
+    """Guarda el nivel de usuario en localStorage del navegador"""
+    from streamlit.components.v1 import html
+
+    js_code = f"""
+    <script>
+        localStorage.setItem('porra_user_level', '{user_level}');
+    </script>
+    """
+    html(js_code, height=0)
+
+def clear_session_from_browser():
+    """Limpia la sesión del localStorage del navegador"""
+    from streamlit.components.v1 import html
+
+    js_code = """
+    <script>
+        localStorage.removeItem('porra_user_level');
+    </script>
+    """
+    html(js_code, height=0)
+
 # Sistema de autenticación con tres niveles
 def check_password():
     """Retorna el nivel de acceso: 'admin', 'responsable', o None"""
@@ -929,9 +967,11 @@ def check_password():
         if password == admin_pwd:
             st.session_state["user_level"] = "admin"
             st.session_state["password_correct"] = True
+            save_session_to_browser("admin")
         elif password == responsable_pwd:
             st.session_state["user_level"] = "responsable"
             st.session_state["password_correct"] = True
+            save_session_to_browser("responsable")
         else:
             st.session_state["password_correct"] = False
             st.session_state["user_level"] = None
@@ -939,13 +979,37 @@ def check_password():
         if "password" in st.session_state:
             del st.session_state["password"]
 
-    # Inicializar estado
+    # Inicializar estado desde cookies si existe
     if "password_correct" not in st.session_state:
-        st.session_state["password_correct"] = False
-        st.session_state["user_level"] = None
+        # Intentar recuperar sesión desde query params (solución simple)
+        try:
+            import streamlit as st_check
+            if 'session_token' in st.query_params:
+                token = st.query_params['session_token']
+                if token == 'admin_token':
+                    st.session_state["user_level"] = "admin"
+                    st.session_state["password_correct"] = True
+                elif token == 'responsable_token':
+                    st.session_state["user_level"] = "responsable"
+                    st.session_state["password_correct"] = True
+                else:
+                    st.session_state["password_correct"] = False
+                    st.session_state["user_level"] = None
+            else:
+                st.session_state["password_correct"] = False
+                st.session_state["user_level"] = None
+        except:
+            st.session_state["password_correct"] = False
+            st.session_state["user_level"] = None
 
     # Si ya está autenticado, mostrar info y botón de logout
     if st.session_state.get("password_correct", False):
+        # Mantener el token en la URL para persistencia
+        if st.session_state["user_level"] == "admin":
+            st.query_params['session_token'] = 'admin_token'
+        elif st.session_state["user_level"] == "responsable":
+            st.query_params['session_token'] = 'responsable_token'
+
         with st.sidebar:
             if st.session_state["user_level"] == "admin":
                 st.success("🔐 Sesión: **Administrador**")
@@ -955,6 +1019,10 @@ def check_password():
             if st.button("🚪 Cerrar Sesión"):
                 st.session_state["password_correct"] = False
                 st.session_state["user_level"] = None
+                clear_session_from_browser()
+                # Limpiar token de la URL
+                if 'session_token' in st.query_params:
+                    del st.query_params['session_token']
                 st.rerun()
 
             st.markdown("---")
