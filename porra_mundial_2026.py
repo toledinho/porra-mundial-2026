@@ -910,20 +910,22 @@ with tab1:
     jornada_vigente = get_jornada_vigente()
 
     if jornada_vigente is not None:
-        st.markdown("### 🔴 Jornada en Curso")
-
-        col_vig1, col_vig2 = st.columns([3, 1])
-
-        with col_vig1:
-            st.markdown(f"**{jornada_vigente['nombre']}** - {jornada_vigente['fase']}")
-            if jornada_vigente['es_estrella']:
-                st.markdown("⭐ **Jornada Estrella**")
-
-        with col_vig2:
-            st.markdown(f"**Fecha límite:** {jornada_vigente['fecha_fin']}")
-
-        # Debug temporal
-        st.caption(f"🔍 Debug: Buscando partidos para jornada_id = {jornada_vigente['id']} (tipo: {type(jornada_vigente['id'])})")
+        # Header de jornada vigente con estilo
+        st.markdown(f"""
+        <div style='background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                    padding: 1.5rem;
+                    border-radius: 15px;
+                    margin-bottom: 2rem;
+                    box-shadow: 0 4px 6px rgba(0,0,0,0.1);'>
+            <h2 style='color: white; margin: 0; text-align: center;'>
+                🔴 JORNADA EN CURSO
+            </h2>
+            <h3 style='color: white; margin: 0.5rem 0 0 0; text-align: center; font-weight: normal;'>
+                {jornada_vigente['nombre']} - {jornada_vigente['fase']}
+                {'⭐' if jornada_vigente['es_estrella'] else ''}
+            </h3>
+        </div>
+        """, unsafe_allow_html=True)
 
         # Obtener partidos de la jornada vigente
         conn = get_conn()
@@ -931,29 +933,56 @@ with tab1:
             "SELECT * FROM partidos WHERE jornada_id = ? ORDER BY numero_partido",
             conn, params=(int(jornada_vigente['id']),)
         )
-
-        # Debug: ver cuántos partidos encontró
-        st.caption(f"🔍 Debug: Se encontraron {len(partidos_vigentes)} partidos")
-
         conn.close()
 
         if len(partidos_vigentes) > 0:
-            st.markdown("#### Partidos:")
+            # Mostrar partidos en un grid de 2 columnas
+            for i in range(0, len(partidos_vigentes), 2):
+                cols = st.columns(2)
 
-            for _, partido in partidos_vigentes.iterrows():
-                col_p1, col_p2 = st.columns([3, 1])
+                for col_idx, col in enumerate(cols):
+                    partido_idx = i + col_idx
+                    if partido_idx < len(partidos_vigentes):
+                        partido = partidos_vigentes.iloc[partido_idx]
 
-                with col_p1:
-                    doble_icon = " ⭐" if partido['es_doble'] else ""
-                    st.markdown(f"**{partido['numero_partido']}.** {partido['nombre']}{doble_icon}")
+                        # Determinar estado y color
+                        if partido['resultado_real'] and partido['resultado_real'].strip():
+                            estado_icon = "✅"
+                            estado_text = partido['resultado_real']
+                            bg_color = "#d4edda"
+                            border_color = "#28a745"
+                        else:
+                            estado_icon = "⏳"
+                            estado_text = "Pendiente"
+                            bg_color = "#fff3cd"
+                            border_color = "#ffc107"
 
-                with col_p2:
-                    if partido['resultado_real'] and partido['resultado_real'].strip():
-                        st.markdown(f"✅ **{partido['resultado_real']}**")
-                    else:
-                        st.markdown("⏳ *Pendiente*")
+                        doble_badge = "⭐ DOBLE" if partido['es_doble'] else ""
+
+                        with col:
+                            st.markdown(f"""
+                            <div style='background-color: {bg_color};
+                                        border-left: 5px solid {border_color};
+                                        padding: 1rem;
+                                        border-radius: 10px;
+                                        margin-bottom: 1rem;
+                                        box-shadow: 0 2px 4px rgba(0,0,0,0.05);'>
+                                <div style='display: flex; justify-content: space-between; align-items: center;'>
+                                    <span style='font-weight: bold; color: #333; font-size: 0.9rem;'>
+                                        PARTIDO {partido['numero_partido']} {doble_badge}
+                                    </span>
+                                    <span style='font-size: 1.2rem;'>{estado_icon}</span>
+                                </div>
+                                <div style='font-size: 1rem; color: #555; margin: 0.5rem 0;'>
+                                    {partido['nombre']}
+                                </div>
+                                <div style='font-size: 1.3rem; font-weight: bold; color: {border_color}; text-align: center;'>
+                                    {estado_text}
+                                </div>
+                            </div>
+                            """, unsafe_allow_html=True)
         else:
-            st.info("No hay partidos configurados para esta jornada")
+            st.warning("⚠️ No hay partidos configurados para esta jornada")
 
         st.markdown("---")
 
@@ -1735,6 +1764,8 @@ if tab4 is not None:
 if tab5 is not None:
   with tab5:
     st.header("⚽ Actualizar Resultados de Partidos")
+
+    st.info("💡 **Actualización en tiempo real:** Puedes ingresar resultados partido por partido a medida que vayan terminando. Los puntos se recalculan automáticamente y las clasificaciones se actualizan al instante.")
 
     jornadas = get_jornadas()
 
