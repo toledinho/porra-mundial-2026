@@ -631,14 +631,35 @@ def get_clasificacion_general(incluir_deuda=False):
                 WHEN (p.puntos = 4 AND pa.es_doble = 0) OR (p.puntos = 8 AND pa.es_doble = 1)
                 THEN 1
             END) as solo_ganador,
-            COUNT(DISTINCT pa.jornada_id) as jornadas_jugadas,
-            MAX(p.puntos) as mejor_pronostico
+            COUNT(DISTINCT pa.jornada_id) as jornadas_jugadas
         FROM pronosticos p
         INNER JOIN partidos pa ON p.partido_id = pa.id
         GROUP BY p.participante
         ORDER BY puntos_totales DESC
     """
     df = pd.read_sql_query(query, conn)
+
+    # Calcular mejor jornada para cada participante
+    query_mejor_jornada = """
+        SELECT
+            p.participante,
+            MAX(puntos_jornada) as mejor_jornada
+        FROM (
+            SELECT
+                p.participante,
+                pa.jornada_id,
+                SUM(p.puntos) as puntos_jornada
+            FROM pronosticos p
+            INNER JOIN partidos pa ON p.partido_id = pa.id
+            GROUP BY p.participante, pa.jornada_id
+        ) AS subquery
+        GROUP BY participante
+    """
+    df_mejor_jornada = pd.read_sql_query(query_mejor_jornada, conn)
+
+    # Hacer merge con la clasificación general
+    df = df.merge(df_mejor_jornada, on='participante', how='left')
+    df['mejor_jornada'] = df['mejor_jornada'].fillna(0)
 
     # Obtener todos los usuarios activos
     usuarios_activos = pd.read_sql_query("SELECT nombre FROM usuarios WHERE activo = 1", conn)
@@ -663,7 +684,7 @@ def get_clasificacion_general(incluir_deuda=False):
                 'ganador_diferencia': fila['ganador_diferencia'],
                 'solo_ganador': fila['solo_ganador'],
                 'jornadas_jugadas': fila['jornadas_jugadas'],
-                'mejor_pronostico': fila['mejor_pronostico']
+                'mejor_jornada': fila['mejor_jornada']
             }
 
             if incluir_deuda:
@@ -700,7 +721,7 @@ def get_clasificacion_general(incluir_deuda=False):
                 'ganador_diferencia': 0,
                 'solo_ganador': 0,
                 'jornadas_jugadas': 0,
-                'mejor_pronostico': 0
+                'mejor_jornada': 0
             }
 
             if incluir_deuda:
@@ -2302,13 +2323,13 @@ with tab6:
         if is_admin:
             # Admin ve todas las columnas incluyendo deuda
             clasificacion_display.columns = ['Posición', 'Participante', 'Puntos', 'Exactos',
-                                             'Ganador+Dif', 'Solo Ganador', 'Jornadas Jugadas', 'Mejor Pronóstico',
+                                             'Ganador+Dif', 'Solo Ganador', 'Jornadas Jugadas', 'Mejor Jornada',
                                              'Jornadas Sin Participar', 'Debe (€)']
             st.warning("⚠️ **Solo visible para admin:** Las columnas 'Jornadas Sin Participar' y 'Debe (€)' no son visibles para otros usuarios")
         else:
             # Usuarios normales no ven columnas de deuda
             clasificacion_display.columns = ['Posición', 'Participante', 'Puntos', 'Exactos',
-                                             'Ganador+Dif', 'Solo Ganador', 'Jornadas', 'Mejor Pronóstico']
+                                             'Ganador+Dif', 'Solo Ganador', 'Jornadas', 'Mejor Jornada']
 
         st.dataframe(clasificacion_display, use_container_width=True, hide_index=True)
 
