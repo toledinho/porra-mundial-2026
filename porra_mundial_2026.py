@@ -535,13 +535,23 @@ def get_clasificacion_jornada(jornada_id):
     """Obtiene la clasificación de una jornada específica, incluyendo usuarios sin participar"""
     conn = get_conn()
 
-    # Obtener puntos de usuarios que participaron
+    # Obtener puntos desglosados de usuarios que participaron
     query = """
         SELECT
             p.participante,
             SUM(p.puntos) as puntos_totales,
-            COUNT(CASE WHEN p.puntos > 0 THEN 1 END) as aciertos,
-            COUNT(p.id) as total_predicciones
+            COUNT(CASE
+                WHEN (p.puntos IN (10, 12) AND pa.es_doble = 0) OR (p.puntos IN (20, 24) AND pa.es_doble = 1)
+                THEN 1
+            END) as exactos,
+            COUNT(CASE
+                WHEN (p.puntos = 6 AND pa.es_doble = 0) OR (p.puntos = 12 AND pa.es_doble = 1)
+                THEN 1
+            END) as ganador_diferencia,
+            COUNT(CASE
+                WHEN (p.puntos = 4 AND pa.es_doble = 0) OR (p.puntos = 8 AND pa.es_doble = 1)
+                THEN 1
+            END) as solo_ganador
         FROM pronosticos p
         INNER JOIN partidos pa ON p.partido_id = pa.id
         WHERE pa.jornada_id = ?
@@ -552,12 +562,6 @@ def get_clasificacion_jornada(jornada_id):
 
     # Obtener todos los usuarios activos
     usuarios_activos = pd.read_sql_query("SELECT nombre FROM usuarios WHERE activo = 1", conn)
-
-    # Obtener número de partidos de la jornada
-    num_partidos = pd.read_sql_query(
-        "SELECT COUNT(*) as total FROM partidos WHERE jornada_id = ?",
-        conn, params=(jornada_id,)
-    )['total'].iloc[0]
 
     conn.close()
 
@@ -570,16 +574,18 @@ def get_clasificacion_jornada(jornada_id):
             todos_usuarios.append({
                 'participante': usuario,
                 'puntos_totales': fila['puntos_totales'],
-                'aciertos': fila['aciertos'],
-                'total_predicciones': fila['total_predicciones']
+                'exactos': fila['exactos'],
+                'ganador_diferencia': fila['ganador_diferencia'],
+                'solo_ganador': fila['solo_ganador']
             })
         else:
             # Usuario NO participó
             todos_usuarios.append({
                 'participante': usuario,
                 'puntos_totales': 0,
-                'aciertos': 0,
-                'total_predicciones': 0
+                'exactos': 0,
+                'ganador_diferencia': 0,
+                'solo_ganador': 0
             })
 
     df_final = pd.DataFrame(todos_usuarios)
@@ -598,10 +604,19 @@ def get_clasificacion_general(incluir_deuda=False):
         SELECT
             p.participante,
             SUM(p.puntos) as puntos_totales,
-            COUNT(CASE WHEN p.puntos > 0 THEN 1 END) as aciertos,
-            COUNT(p.id) as total_predicciones,
+            COUNT(CASE
+                WHEN (p.puntos IN (10, 12) AND pa.es_doble = 0) OR (p.puntos IN (20, 24) AND pa.es_doble = 1)
+                THEN 1
+            END) as exactos,
+            COUNT(CASE
+                WHEN (p.puntos = 6 AND pa.es_doble = 0) OR (p.puntos = 12 AND pa.es_doble = 1)
+                THEN 1
+            END) as ganador_diferencia,
+            COUNT(CASE
+                WHEN (p.puntos = 4 AND pa.es_doble = 0) OR (p.puntos = 8 AND pa.es_doble = 1)
+                THEN 1
+            END) as solo_ganador,
             COUNT(DISTINCT pa.jornada_id) as jornadas_jugadas,
-            ROUND(AVG(p.puntos), 2) as promedio_puntos,
             MAX(p.puntos) as mejor_pronostico
         FROM pronosticos p
         INNER JOIN partidos pa ON p.partido_id = pa.id
@@ -629,10 +644,10 @@ def get_clasificacion_general(incluir_deuda=False):
             datos = {
                 'participante': usuario,
                 'puntos_totales': fila['puntos_totales'],
-                'aciertos': fila['aciertos'],
-                'total_predicciones': fila['total_predicciones'],
+                'exactos': fila['exactos'],
+                'ganador_diferencia': fila['ganador_diferencia'],
+                'solo_ganador': fila['solo_ganador'],
                 'jornadas_jugadas': fila['jornadas_jugadas'],
-                'promedio_puntos': fila['promedio_puntos'],
                 'mejor_pronostico': fila['mejor_pronostico']
             }
 
@@ -666,10 +681,10 @@ def get_clasificacion_general(incluir_deuda=False):
             datos = {
                 'participante': usuario,
                 'puntos_totales': 0,
-                'aciertos': 0,
-                'total_predicciones': 0,
+                'exactos': 0,
+                'ganador_diferencia': 0,
+                'solo_ganador': 0,
                 'jornadas_jugadas': 0,
-                'promedio_puntos': 0.0,
                 'mejor_pronostico': 0
             }
 
@@ -2105,14 +2120,14 @@ with tab6:
 
         if is_admin:
             # Admin ve todas las columnas incluyendo deuda
-            clasificacion_display.columns = ['#', 'Participante', 'Puntos', 'Aciertos',
-                                             'Total Pronósticos', 'Jornadas Jugadas', 'Promedio', 'Mejor Pronóstico',
+            clasificacion_display.columns = ['#', 'Participante', 'Puntos', 'Exactos',
+                                             'Ganador+Dif', 'Solo Ganador', 'Jornadas Jugadas', 'Mejor Pronóstico',
                                              'Jornadas Sin Participar', 'Debe (€)']
             st.warning("⚠️ **Solo visible para admin:** Las columnas 'Jornadas Sin Participar' y 'Debe (€)' no son visibles para otros usuarios")
         else:
             # Usuarios normales no ven columnas de deuda
-            clasificacion_display.columns = ['#', 'Participante', 'Puntos', 'Aciertos',
-                                             'Total Pronósticos', 'Jornadas', 'Promedio', 'Mejor Pronóstico']
+            clasificacion_display.columns = ['#', 'Participante', 'Puntos', 'Exactos',
+                                             'Ganador+Dif', 'Solo Ganador', 'Jornadas', 'Mejor Pronóstico']
 
         st.dataframe(clasificacion_display, use_container_width=True, hide_index=True)
 
@@ -2141,7 +2156,7 @@ with tab6:
 
             clasificacion_jornada = get_clasificacion_jornada(jornada_seleccionada)
             clasificacion_jornada.insert(0, 'Posición', range(1, len(clasificacion_jornada) + 1))
-            clasificacion_jornada.columns = ['#', 'Participante', 'Puntos Jornada', 'Aciertos', 'Total Pronósticos']
+            clasificacion_jornada.columns = ['#', 'Participante', 'Puntos Jornada', 'Exactos', 'Ganador+Dif', 'Solo Ganador']
 
             st.dataframe(clasificacion_jornada, use_container_width=True, hide_index=True)
 
