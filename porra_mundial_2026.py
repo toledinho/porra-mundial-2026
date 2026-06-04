@@ -1290,7 +1290,7 @@ with tab1:
 
         # Añadir ranking
         clasificacion_ultima.insert(0, 'Posición', range(1, len(clasificacion_ultima) + 1))
-        clasificacion_ultima.columns = ['#', 'Participante', 'Puntos Jornada', 'Exactos', 'Ganador+Dif', 'Solo Ganador']
+        clasificacion_ultima.columns = ['Posición', 'Participante', 'Puntos Jornada', 'Exactos', 'Ganador+Dif', 'Solo Ganador']
 
         st.dataframe(clasificacion_ultima, use_container_width=True, hide_index=True)
     else:
@@ -2301,13 +2301,13 @@ with tab6:
 
         if is_admin:
             # Admin ve todas las columnas incluyendo deuda
-            clasificacion_display.columns = ['#', 'Participante', 'Puntos', 'Exactos',
+            clasificacion_display.columns = ['Posición', 'Participante', 'Puntos', 'Exactos',
                                              'Ganador+Dif', 'Solo Ganador', 'Jornadas Jugadas', 'Mejor Pronóstico',
                                              'Jornadas Sin Participar', 'Debe (€)']
             st.warning("⚠️ **Solo visible para admin:** Las columnas 'Jornadas Sin Participar' y 'Debe (€)' no son visibles para otros usuarios")
         else:
             # Usuarios normales no ven columnas de deuda
-            clasificacion_display.columns = ['#', 'Participante', 'Puntos', 'Exactos',
+            clasificacion_display.columns = ['Posición', 'Participante', 'Puntos', 'Exactos',
                                              'Ganador+Dif', 'Solo Ganador', 'Jornadas', 'Mejor Pronóstico']
 
         st.dataframe(clasificacion_display, use_container_width=True, hide_index=True)
@@ -2337,7 +2337,7 @@ with tab6:
 
             clasificacion_jornada = get_clasificacion_jornada(jornada_seleccionada)
             clasificacion_jornada.insert(0, 'Posición', range(1, len(clasificacion_jornada) + 1))
-            clasificacion_jornada.columns = ['#', 'Participante', 'Puntos Jornada', 'Exactos', 'Ganador+Dif', 'Solo Ganador']
+            clasificacion_jornada.columns = ['Posición', 'Participante', 'Puntos Jornada', 'Exactos', 'Ganador+Dif', 'Solo Ganador']
 
             st.dataframe(clasificacion_jornada, use_container_width=True, hide_index=True)
 
@@ -2381,7 +2381,7 @@ with tab6:
 
                 # Añadir posición
                 clasificacion_personalizada.insert(0, 'Posición', range(1, len(clasificacion_personalizada) + 1))
-                clasificacion_personalizada.columns = ['#', 'Participante', 'Puntos Acumulados', 'Aciertos', 'Total Pronósticos']
+                clasificacion_personalizada.columns = ['Posición', 'Participante', 'Puntos Acumulados', 'Aciertos', 'Total Pronósticos']
 
                 # Mostrar clasificación
                 st.dataframe(clasificacion_personalizada, use_container_width=True, hide_index=True)
