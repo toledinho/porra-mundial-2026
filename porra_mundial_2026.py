@@ -960,6 +960,10 @@ def check_password():
 
     def password_entered():
         """Verifica la contraseña introducida"""
+        # Verificar que la clave existe antes de acceder
+        if "password" not in st.session_state:
+            return
+
         password = st.session_state["password"]
         admin_pwd = st.secrets.get("admin_password", "admin123")
         responsable_pwd = st.secrets.get("responsable_password", "peña2026")
@@ -976,6 +980,7 @@ def check_password():
             st.session_state["password_correct"] = False
             st.session_state["user_level"] = None
 
+        # Limpiar password del estado
         if "password" in st.session_state:
             del st.session_state["password"]
 
