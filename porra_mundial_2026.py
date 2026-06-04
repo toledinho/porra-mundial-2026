@@ -1186,6 +1186,21 @@ with tab1:
 
                         doble_badge = "⭐ DOBLE" if partido['es_doble'] else ""
 
+                        # Extraer equipos del nombre (formato: "Equipo1 vs Equipo2")
+                        nombre_partido = partido['nombre']
+                        equipos = nombre_partido.split(' vs ') if ' vs ' in nombre_partido else [nombre_partido, '']
+                        equipo_local = equipos[0] if len(equipos) > 0 else ''
+                        equipo_visitante = equipos[1] if len(equipos) > 1 else ''
+
+                        # Extraer resultado si existe
+                        if partido['resultado_real'] and partido['resultado_real'].strip():
+                            goles = partido['resultado_real'].split('-')
+                            goles_local = goles[0].strip() if len(goles) > 0 else ''
+                            goles_visitante = goles[1].strip() if len(goles) > 1 else ''
+                        else:
+                            goles_local = '-'
+                            goles_visitante = '-'
+
                         with col:
                             st.markdown(f"""
                             <div style='background-color: {bg_color};
@@ -1194,17 +1209,18 @@ with tab1:
                                         border-radius: 10px;
                                         margin-bottom: 1rem;
                                         box-shadow: 0 2px 4px rgba(0,0,0,0.05);'>
-                                <div style='display: flex; justify-content: space-between; align-items: center;'>
-                                    <span style='font-weight: bold; color: #333; font-size: 0.9rem;'>
+                                <div style='display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;'>
+                                    <span style='font-weight: bold; color: #333; font-size: 0.85rem;'>
                                         PARTIDO {partido['numero_partido']} {doble_badge}
                                     </span>
-                                    <span style='font-size: 1.2rem;'>{estado_icon}</span>
+                                    <span style='font-size: 1.1rem;'>{estado_icon}</span>
                                 </div>
-                                <div style='font-size: 1rem; color: #555; margin: 0.5rem 0;'>
-                                    {partido['nombre']}
-                                </div>
-                                <div style='font-size: 1.3rem; font-weight: bold; color: {border_color}; text-align: center;'>
-                                    {estado_text}
+                                <div style='display: grid; grid-template-columns: 2fr 1fr 0.5fr 1fr 2fr; align-items: center; gap: 0.5rem;'>
+                                    <div style='text-align: right; font-weight: 500; color: #333;'>{equipo_local}</div>
+                                    <div style='text-align: center; font-size: 1.5rem; font-weight: bold; color: {border_color};'>{goles_local}</div>
+                                    <div style='text-align: center; font-weight: bold; color: #666;'>-</div>
+                                    <div style='text-align: center; font-size: 1.5rem; font-weight: bold; color: {border_color};'>{goles_visitante}</div>
+                                    <div style='text-align: left; font-weight: 500; color: #333;'>{equipo_visitante}</div>
                                 </div>
                             </div>
                             """, unsafe_allow_html=True)
