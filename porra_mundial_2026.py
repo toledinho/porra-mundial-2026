@@ -8,6 +8,20 @@ import io
 import base64
 from database import get_conn
 
+# Lista oficial de selecciones participantes en el Mundial 2026 (48 equipos)
+SELECCIONES_MUNDIAL_2026 = [
+    "Alemania", "Arabia Saudita", "Argelia", "Argentina", "Australia",
+    "Austria", "Bélgica", "Bosnia y Herzegovina", "Brasil", "Cabo Verde",
+    "Canadá", "Catar", "Colombia", "Corea del Sur", "Costa de Marfil",
+    "Croacia", "Curazao", "Ecuador", "Egipto", "Escocia",
+    "España", "Estados Unidos", "Francia", "Ghana", "Haití",
+    "Inglaterra", "Irak", "Irán", "Japón", "Jordania",
+    "Marruecos", "México", "Noruega", "Nueva Zelanda", "Países Bajos",
+    "Panamá", "Paraguay", "Portugal", "República Checa", "República Democrática del Congo",
+    "Senegal", "Sudáfrica", "Suecia", "Suiza", "Túnez",
+    "Turquía", "Uruguay", "Uzbekistán"
+]
+
 # Configuración de la página
 st.set_page_config(
     page_title="Porra Mundial 2026",
@@ -1684,9 +1698,10 @@ if tab3 is not None:
             col_local, col_gol_local, col_vs, col_gol_visit, col_visitante = st.columns([3, 1, 0.5, 1, 3])
 
             with col_local:
-                equipo_local = st.text_input(
+                equipo_local = st.selectbox(
                     f"Equipo Local {i+1}",
-                    placeholder="Ej: España",
+                    options=[""] + SELECCIONES_MUNDIAL_2026,
+                    format_func=lambda x: "Selecciona equipo local..." if x == "" else x,
                     key=f"equipo_local_{i}",
                     label_visibility="collapsed"
                 )
@@ -1711,9 +1726,10 @@ if tab3 is not None:
                 )
 
             with col_visitante:
-                equipo_visitante = st.text_input(
+                equipo_visitante = st.selectbox(
                     f"Equipo Visitante {i+1}",
-                    placeholder="Ej: Alemania",
+                    options=[""] + SELECCIONES_MUNDIAL_2026,
+                    format_func=lambda x: "Selecciona equipo visitante..." if x == "" else x,
                     key=f"equipo_visit_{i}",
                     label_visibility="collapsed"
                 )
