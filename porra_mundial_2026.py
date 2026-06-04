@@ -1463,6 +1463,73 @@ if tab2 is not None:
         else:
             st.info("No hay usuarios para eliminar")
 
+    # SECCIÓN DE LIMPIEZA: Eliminar jornadas excepto la primera
+    st.markdown("---")
+    with st.expander("🗑️ Limpiar Jornadas (Mantener solo la primera)", expanded=False):
+        st.warning("""
+        **⚠️ ADVERTENCIA:**
+
+        Esta acción eliminará **TODAS las jornadas excepto la primera**, incluyendo:
+        - Partidos de esas jornadas
+        - Pronósticos de esas jornadas
+        - Resultados de esas jornadas
+
+        **LA PRIMERA JORNADA SE CONSERVA INTACTA** con todos sus datos.
+
+        Esto es útil para mantener la estructura inicial pero limpiar pruebas.
+        """)
+
+        confirmar_limpiar = st.text_input(
+            "Escribe 'LIMPIAR JORNADAS' para confirmar",
+            key="confirmar_limpiar_jornadas"
+        )
+
+        if st.button("🗑️ Mantener Solo Primera Jornada", type="secondary", disabled=(confirmar_limpiar != "LIMPIAR JORNADAS")):
+            try:
+                conn = get_conn()
+                c = conn.cursor()
+
+                # Obtener todas las jornadas
+                c.execute("SELECT id, numero, nombre FROM jornadas ORDER BY numero")
+                jornadas = c.fetchall()
+
+                if len(jornadas) > 1:
+                    primera_jornada_id = jornadas[0][0]
+                    jornadas_eliminar = [j[0] for j in jornadas[1:]]
+
+                    eliminadas = 0
+                    for jornada_id in jornadas_eliminar:
+                        # Obtener IDs de partidos
+                        c.execute("SELECT id FROM partidos WHERE jornada_id = ?", (jornada_id,))
+                        partido_ids = [row[0] for row in c.fetchall()]
+
+                        # Eliminar pronósticos
+                        if partido_ids:
+                            placeholders = ','.join(['?' for _ in partido_ids])
+                            c.execute(f"DELETE FROM pronosticos WHERE partido_id IN ({placeholders})", partido_ids)
+
+                        # Eliminar partidos
+                        c.execute("DELETE FROM partidos WHERE jornada_id = ?", (jornada_id,))
+
+                        # Eliminar jornada
+                        c.execute("DELETE FROM jornadas WHERE id = ?", (jornada_id,))
+                        eliminadas += 1
+
+                    conn.commit()
+                    conn.close()
+
+                    st.success(f"✅ {eliminadas} jornadas eliminadas. La primera jornada ({jornadas[0][2]}) se ha conservado con todos sus datos.")
+                    st.balloons()
+                    st.rerun()
+                else:
+                    conn.close()
+                    st.info("ℹ️ Solo existe una jornada, no hay nada que eliminar.")
+
+            except Exception as e:
+                st.error(f"❌ Error al limpiar jornadas: {e}")
+                import traceback
+                st.code(traceback.format_exc())
+
     # SECCIÓN OCULTA: Recrear todas las tablas (solo para emergencias)
     st.markdown("---")
     with st.expander("🔧 HERRAMIENTAS AVANZADAS (Solo Emergencias)", expanded=False):
