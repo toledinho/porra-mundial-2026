@@ -639,12 +639,9 @@ def get_clasificacion_general(incluir_deuda=False):
     """
     df = pd.read_sql_query(query, conn)
 
-    # Calcular mejor jornada para cada participante
+    # Calcular mejor jornada para cada participante usando CTE
     query_mejor_jornada = """
-        SELECT
-            p.participante,
-            MAX(puntos_jornada) as mejor_jornada
-        FROM (
+        WITH puntos_por_jornada AS (
             SELECT
                 p.participante,
                 pa.jornada_id,
@@ -652,7 +649,11 @@ def get_clasificacion_general(incluir_deuda=False):
             FROM pronosticos p
             INNER JOIN partidos pa ON p.partido_id = pa.id
             GROUP BY p.participante, pa.jornada_id
-        ) AS subquery
+        )
+        SELECT
+            participante,
+            MAX(puntos_jornada) as mejor_jornada
+        FROM puntos_por_jornada
         GROUP BY participante
     """
     df_mejor_jornada = pd.read_sql_query(query_mejor_jornada, conn)
