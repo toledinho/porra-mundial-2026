@@ -111,7 +111,6 @@ def init_db():
         fecha TEXT,
         fase TEXT,
         estado_pronosticos TEXT DEFAULT 'cerrada',
-        fecha_inicio TEXT,
         fecha_fin TEXT
     )''')
 
@@ -122,13 +121,7 @@ def init_db():
         c.execute("ALTER TABLE jornadas ADD COLUMN estado_pronosticos TEXT DEFAULT 'cerrada'")
         conn.commit()
 
-    # Migración: Añadir columnas fecha_inicio y fecha_fin si no existen
-    try:
-        c.execute("SELECT fecha_inicio FROM jornadas LIMIT 1")
-    except:
-        c.execute("ALTER TABLE jornadas ADD COLUMN fecha_inicio TEXT")
-        conn.commit()
-
+    # Migración: Añadir columna fecha_fin si no existe
     try:
         c.execute("SELECT fecha_fin FROM jornadas LIMIT 1")
     except:
@@ -289,13 +282,13 @@ def cargar_usuarios_desde_archivo(archivo):
     except Exception as e:
         return False, f"Error al procesar archivo: {str(e)}"
 
-def crear_jornada(numero, nombre, es_estrella, fase="Fase de Grupos", fecha_inicio=None, fecha_fin=None):
+def crear_jornada(numero, nombre, es_estrella, fase="Fase de Grupos", fecha_fin=None):
     """Crea una nueva jornada"""
     conn = get_conn()
     c = conn.cursor()
     fecha = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    c.execute("INSERT INTO jornadas (numero, nombre, es_estrella, fecha, fase, fecha_inicio, fecha_fin) VALUES (?, ?, ?, ?, ?, ?, ?)",
-              (numero, nombre, es_estrella, fecha, fase, fecha_inicio, fecha_fin))
+    c.execute("INSERT INTO jornadas (numero, nombre, es_estrella, fecha, fase, fecha_fin) VALUES (?, ?, ?, ?, ?, ?)",
+              (numero, nombre, es_estrella, fecha, fase, fecha_fin))
     jornada_id = c.lastrowid
     conn.commit()
     conn.close()
@@ -586,19 +579,17 @@ def get_jornadas():
     return df
 
 def get_jornada_vigente():
-    """Obtiene la jornada vigente según las fechas"""
+    """Obtiene la jornada vigente: la más reciente que aún no haya pasado su fecha fin"""
     conn = get_conn()
     hoy = datetime.now().strftime("%Y-%m-%d")
     query = """
         SELECT * FROM jornadas
-        WHERE fecha_inicio IS NOT NULL
-        AND fecha_fin IS NOT NULL
-        AND date(fecha_inicio) <= date(?)
+        WHERE fecha_fin IS NOT NULL
         AND date(fecha_fin) >= date(?)
         ORDER BY numero DESC
         LIMIT 1
     """
-    df = pd.read_sql_query(query, conn, params=(hoy, hoy))
+    df = pd.read_sql_query(query, conn, params=(hoy,))
     conn.close()
     return df.iloc[0] if len(df) > 0 else None
 
@@ -921,7 +912,7 @@ with tab1:
     if jornada_vigente is not None:
         st.markdown("### 🔴 Jornada en Curso")
 
-        col_vig1, col_vig2, col_vig3 = st.columns([2, 1, 1])
+        col_vig1, col_vig2 = st.columns([3, 1])
 
         with col_vig1:
             st.markdown(f"**{jornada_vigente['nombre']}** - {jornada_vigente['fase']}")
@@ -929,10 +920,7 @@ with tab1:
                 st.markdown("⭐ **Jornada Estrella**")
 
         with col_vig2:
-            st.markdown(f"**Inicio:** {jornada_vigente['fecha_inicio']}")
-
-        with col_vig3:
-            st.markdown(f"**Fin:** {jornada_vigente['fecha_fin']}")
+            st.markdown(f"**Fecha límite:** {jornada_vigente['fecha_fin']}")
 
         # Obtener partidos de la jornada vigente
         conn = get_conn()
@@ -1277,7 +1265,8 @@ if tab2 is not None:
                         es_estrella INTEGER DEFAULT 0,
                         fecha TEXT,
                         fase TEXT,
-                        estado_pronosticos TEXT DEFAULT 'cerrada'
+                        estado_pronosticos TEXT DEFAULT 'cerrada',
+                        fecha_fin TEXT
                     )''')
 
                     # Partidos
@@ -1340,25 +1329,15 @@ if tab3 is not None:
             fase = st.text_input("Fase del Mundial", value="Fase de Grupos",
                                placeholder="Ej: Octavos, Semifinales, Final...", key="fase_jornada")
 
-        st.markdown("**Fechas de la Jornada** (para mostrar como jornada vigente en la página principal)")
+        st.markdown("**Fecha de la Jornada**")
+        st.info("La jornada se mostrará en la página principal desde que se cree hasta que pase esta fecha")
 
-        col_fecha1, col_fecha2 = st.columns(2)
-
-        with col_fecha1:
-            fecha_inicio = st.date_input(
-                "Fecha del primer partido",
-                value=None,
-                help="Fecha en la que comienza la jornada",
-                key="fecha_inicio_jornada"
-            )
-
-        with col_fecha2:
-            fecha_fin = st.date_input(
-                "Fecha del último partido",
-                value=None,
-                help="Fecha en la que termina la jornada",
-                key="fecha_fin_jornada"
-            )
+        fecha_fin = st.date_input(
+            "Fecha del último partido de la jornada",
+            value=None,
+            help="La jornada estará vigente hasta esta fecha",
+            key="fecha_fin_jornada"
+        )
 
         st.markdown("---")
         st.markdown("### ⚽ Paso 2: Configurar Partidos")
@@ -1524,12 +1503,11 @@ if tab3 is not None:
                     st.error(f"❌ {error}")
             else:
                 with st.spinner("Procesando jornada..."):
-                    # Convertir fechas a string si existen
-                    fecha_inicio_str = fecha_inicio.strftime("%Y-%m-%d") if fecha_inicio else None
+                    # Convertir fecha a string si existe
                     fecha_fin_str = fecha_fin.strftime("%Y-%m-%d") if fecha_fin else None
 
                     # Crear jornada
-                    jornada_id = crear_jornada(numero_jornada, nombre_jornada, 1 if es_estrella else 0, fase, fecha_inicio_str, fecha_fin_str)
+                    jornada_id = crear_jornada(numero_jornada, nombre_jornada, 1 if es_estrella else 0, fase, fecha_fin_str)
 
                     # Establecer estado de pronósticos
                     estado = 'abierta' if abrir_pronosticos else 'cerrada'
@@ -2161,8 +2139,8 @@ if tab8 is not None:
         for _, jornada in jornadas.iterrows():
             with st.expander(f"{'⭐' if jornada['es_estrella'] else '📅'} {jornada['nombre']} - {jornada['fase']}"):
                 st.markdown(f"**Fecha de creación:** {jornada['fecha']}")
-                if jornada.get('fecha_inicio') and jornada.get('fecha_fin'):
-                    st.markdown(f"**Período de la jornada:** {jornada['fecha_inicio']} al {jornada['fecha_fin']}")
+                if jornada.get('fecha_fin'):
+                    st.markdown(f"**Fecha del último partido:** {jornada['fecha_fin']}")
                 st.markdown(f"**Tipo:** {'Jornada Estrella' if jornada['es_estrella'] else 'Jornada Normal'}")
 
                 # Botón de exportar pronósticos
