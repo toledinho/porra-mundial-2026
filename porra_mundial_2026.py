@@ -1087,26 +1087,28 @@ if is_admin:
         "📜 Histórico"
     ])
 elif is_responsable:
-    # Responsable ve solo ingresar pronósticos y consultas (sin Histórico)
-    tab1, tab4, tab6, tab7, tab_info = st.tabs([
+    # Responsable ve ingresar pronósticos, consultas e histórico
+    tab1, tab4, tab6, tab7, tab8, tab_info = st.tabs([
         "📊 Inicio",
         "📝 Ingresar Pronósticos",
         "🏆 Clasificaciones",
         "📈 Estadísticas",
+        "📜 Histórico",
         "ℹ️ Info"
     ])
     # Crear tabs dummy
-    tab2 = tab3 = tab5 = tab8 = None
+    tab2 = tab3 = tab5 = None
 else:
-    # Usuarios públicos (sin Histórico)
-    tab1, tab6, tab7, tab_info = st.tabs([
+    # Usuarios públicos ven histórico también
+    tab1, tab6, tab7, tab8, tab_info = st.tabs([
         "📊 Inicio",
         "🏆 Clasificaciones",
         "📈 Estadísticas",
+        "📜 Histórico",
         "ℹ️ Info"
     ])
     # Crear tabs dummy
-    tab2 = tab3 = tab4 = tab5 = tab8 = None
+    tab2 = tab3 = tab4 = tab5 = None
 
 # TAB 1: INICIO
 with tab1:
@@ -2382,12 +2384,26 @@ with tab7:
     else:
         st.info("No hay estadísticas disponibles aún. Crea una jornada primero.")
 
-# TAB 8: HISTÓRICO (Solo Admin)
+# TAB 8: HISTÓRICO
 if tab8 is not None:
   with tab8:
     st.header("📜 Histórico de Jornadas")
 
     jornadas = get_jornadas()
+
+    # Filtrar jornadas según el rol
+    if not is_admin:
+        # Usuarios normales solo ven jornadas pasadas (excluir la jornada vigente)
+        jornada_vigente = get_jornada_vigente()
+
+        if jornada_vigente is not None:
+            # Excluir la jornada vigente
+            jornadas = jornadas[jornadas['id'] != jornada_vigente['id']]
+            st.info("ℹ️ Solo se muestran jornadas finalizadas. La jornada en curso no es visible hasta que finalice.")
+
+        # Si después de filtrar no hay jornadas, mostrar mensaje apropiado
+        if len(jornadas) == 0:
+            jornadas = pd.DataFrame()
 
     if len(jornadas) > 0:
         for _, jornada in jornadas.iterrows():
@@ -2397,17 +2413,18 @@ if tab8 is not None:
                     st.markdown(f"**Fecha del último partido:** {jornada['fecha_fin']}")
                 st.markdown(f"**Tipo:** {'Jornada Estrella' if jornada['es_estrella'] else 'Jornada Normal'}")
 
-                # Botón de exportar pronósticos
-                df_pronosticos, info_jornada = exportar_pronosticos_jornada(jornada['id'])
-                csv_pronosticos = df_pronosticos.to_csv(index=False).encode('utf-8')
+                # Botón de exportar pronósticos (solo admin)
+                if is_admin:
+                    df_pronosticos, info_jornada = exportar_pronosticos_jornada(jornada['id'])
+                    csv_pronosticos = df_pronosticos.to_csv(index=False).encode('utf-8')
 
-                st.download_button(
-                    label="📥 Exportar Pronósticos de esta Jornada (Auditoría)",
-                    data=csv_pronosticos,
-                    file_name=f"pronosticos_jornada_{jornada['numero']}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv",
-                    mime="text/csv",
-                    key=f"export_jornada_{jornada['id']}"
-                )
+                    st.download_button(
+                        label="📥 Exportar Pronósticos de esta Jornada (Auditoría)",
+                        data=csv_pronosticos,
+                        file_name=f"pronosticos_jornada_{jornada['numero']}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv",
+                        mime="text/csv",
+                        key=f"export_jornada_{jornada['id']}"
+                    )
 
                 st.markdown("---")
 
@@ -2429,7 +2446,10 @@ if tab8 is not None:
                     resultado_text = f" - Resultado: {partido['resultado_real']}" if partido['resultado_real'] else ""
                     st.markdown(f"- **Partido {partido['numero_partido']}:** {partido['nombre']}{doble_text}{resultado_text}")
     else:
-        st.info("No hay jornadas registradas en el histórico.")
+        if is_admin:
+            st.info("No hay jornadas registradas en el histórico.")
+        else:
+            st.info("No hay jornadas finalizadas aún para mostrar en el histórico.")
 
 # TAB INFO (Solo visible para usuarios no autenticados o responsables)
 if not is_admin and 'tab_info' in locals():
