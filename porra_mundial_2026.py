@@ -911,6 +911,7 @@ with tab1:
 
     if jornada_vigente is not None:
         # Header de jornada vigente con estilo
+        estrella_badge = "⭐" if jornada_vigente['es_estrella'] else ""
         st.markdown(f"""
         <div style='background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
                     padding: 1.5rem;
@@ -921,8 +922,7 @@ with tab1:
                 🔴 JORNADA EN CURSO
             </h2>
             <h3 style='color: white; margin: 0.5rem 0 0 0; text-align: center; font-weight: normal;'>
-                {jornada_vigente['nombre']} - {jornada_vigente['fase']}
-                {'⭐' if jornada_vigente['es_estrella'] else ''}
+                {jornada_vigente['nombre']} - {jornada_vigente['fase']} {estrella_badge}
             </h3>
         </div>
         """, unsafe_allow_html=True)
