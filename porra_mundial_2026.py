@@ -2503,7 +2503,7 @@ with tab7:
         st.markdown("---")
 
         # Comparativa de participantes
-        st.subheader("⚖️ Comparativa de Participantes")
+        st.subheader("⚖️ Evolución de Participantes")
 
         # Multiselect para elegir participantes
         todos_participantes = clasificacion['participante'].tolist()
@@ -2512,23 +2512,48 @@ with tab7:
             "Selecciona los participantes a comparar",
             options=todos_participantes,
             default=todos_participantes[:5] if len(todos_participantes) >= 5 else todos_participantes,
-            help="Puedes seleccionar múltiples participantes para comparar"
+            help="Puedes seleccionar múltiples participantes para ver su evolución"
         )
 
         if len(participantes_seleccionados) > 0:
-            # Filtrar clasificación por participantes seleccionados
-            clasificacion_filtrada = clasificacion[clasificacion['participante'].isin(participantes_seleccionados)]
+            # Obtener evolución de puntos
+            evolucion = get_evolucion_puntos()
 
-            fig_compare = px.bar(clasificacion_filtrada,
-                                x='participante',
-                                y='puntos_totales',
-                                color='puntos_totales',
-                                labels={'participante': 'Participante', 'puntos_totales': 'Puntos Totales'},
-                                title=f'Comparativa de {len(participantes_seleccionados)} Participantes')
+            if len(evolucion) > 0:
+                # Filtrar solo los participantes seleccionados
+                evolucion_filtrada = evolucion[evolucion['participante'].isin(participantes_seleccionados)]
 
-            st.plotly_chart(fig_compare, use_container_width=True)
+                # Calcular puntos acumulados
+                evolucion_acumulada = evolucion_filtrada.pivot(index='jornada', columns='participante', values='puntos').fillna(0).cumsum()
+
+                # Crear gráfico de líneas
+                fig = go.Figure()
+
+                for participante in participantes_seleccionados:
+                    if participante in evolucion_acumulada.columns:
+                        fig.add_trace(go.Scatter(
+                            x=evolucion_acumulada.index,
+                            y=evolucion_acumulada[participante],
+                            mode='lines+markers',
+                            name=participante,
+                            line=dict(width=3),
+                            marker=dict(size=8)
+                        ))
+
+                fig.update_layout(
+                    title=f"Evolución de Puntos Acumulados - {len(participantes_seleccionados)} Participantes",
+                    xaxis_title="Jornada",
+                    yaxis_title="Puntos Acumulados",
+                    hovermode='x unified',
+                    height=500,
+                    showlegend=True
+                )
+
+                st.plotly_chart(fig, use_container_width=True)
+            else:
+                st.info("No hay datos de evolución disponibles aún")
         else:
-            st.info("👆 Selecciona al menos un participante para ver la comparativa")
+            st.info("👆 Selecciona al menos un participante para ver su evolución")
 
     else:
         st.info("No hay estadísticas disponibles aún. Crea una jornada primero.")
