@@ -532,8 +532,10 @@ def actualizar_resultados_jornada(jornada_id, resultados):
         return False
 
 def get_clasificacion_jornada(jornada_id):
-    """Obtiene la clasificación de una jornada específica"""
+    """Obtiene la clasificación de una jornada específica, incluyendo usuarios sin participar"""
     conn = get_conn()
+
+    # Obtener puntos de usuarios que participaron
     query = """
         SELECT
             p.participante,
@@ -546,12 +548,51 @@ def get_clasificacion_jornada(jornada_id):
         GROUP BY p.participante
         ORDER BY puntos_totales DESC
     """
-    df = pd.read_sql_query(query, conn, params=(jornada_id,))
-    conn.close()
-    return df
+    df_participantes = pd.read_sql_query(query, conn, params=(jornada_id,))
 
-def get_clasificacion_general():
-    """Obtiene la clasificación general del torneo"""
+    # Obtener todos los usuarios activos
+    usuarios_activos = pd.read_sql_query("SELECT nombre FROM usuarios WHERE activo = 1", conn)
+
+    # Obtener número de partidos de la jornada
+    num_partidos = pd.read_sql_query(
+        "SELECT COUNT(*) as total FROM partidos WHERE jornada_id = ?",
+        conn, params=(jornada_id,)
+    )['total'].iloc[0]
+
+    conn.close()
+
+    # Crear DataFrame con todos los usuarios
+    todos_usuarios = []
+    for usuario in usuarios_activos['nombre']:
+        if usuario in df_participantes['participante'].values:
+            # Usuario participó
+            fila = df_participantes[df_participantes['participante'] == usuario].iloc[0]
+            todos_usuarios.append({
+                'participante': usuario,
+                'puntos_totales': fila['puntos_totales'],
+                'aciertos': fila['aciertos'],
+                'total_predicciones': fila['total_predicciones']
+            })
+        else:
+            # Usuario NO participó
+            todos_usuarios.append({
+                'participante': usuario,
+                'puntos_totales': 0,
+                'aciertos': 0,
+                'total_predicciones': 0
+            })
+
+    df_final = pd.DataFrame(todos_usuarios)
+    df_final = df_final.sort_values('puntos_totales', ascending=False).reset_index(drop=True)
+
+    return df_final
+
+def get_clasificacion_general(incluir_deuda=False):
+    """Obtiene la clasificación general del torneo
+
+    Args:
+        incluir_deuda: Si True, incluye columnas de jornadas sin participar y deuda (solo para admin)
+    """
     conn = get_conn()
     query = """
         SELECT
@@ -568,8 +609,90 @@ def get_clasificacion_general():
         ORDER BY puntos_totales DESC
     """
     df = pd.read_sql_query(query, conn)
+
+    # Obtener todos los usuarios activos
+    usuarios_activos = pd.read_sql_query("SELECT nombre FROM usuarios WHERE activo = 1", conn)
+
+    # Obtener total de jornadas creadas
+    jornadas_totales = pd.read_sql_query("SELECT COUNT(*) as total FROM jornadas", conn)['total'].iloc[0]
+
+    # Obtener todas las jornadas con su tipo (normal o estrella)
+    jornadas_info = pd.read_sql_query("SELECT id, es_estrella FROM jornadas", conn)
+
+    # Crear DataFrame completo con todos los usuarios
+    todos_usuarios = []
+
+    for usuario in usuarios_activos['nombre']:
+        if usuario in df['participante'].values:
+            # Usuario tiene pronósticos
+            fila = df[df['participante'] == usuario].iloc[0]
+            datos = {
+                'participante': usuario,
+                'puntos_totales': fila['puntos_totales'],
+                'aciertos': fila['aciertos'],
+                'total_predicciones': fila['total_predicciones'],
+                'jornadas_jugadas': fila['jornadas_jugadas'],
+                'promedio_puntos': fila['promedio_puntos'],
+                'mejor_pronostico': fila['mejor_pronostico']
+            }
+
+            if incluir_deuda:
+                # Obtener jornadas en las que SÍ participó
+                jornadas_participadas = pd.read_sql_query("""
+                    SELECT DISTINCT pa.jornada_id
+                    FROM pronosticos p
+                    INNER JOIN partidos pa ON p.partido_id = pa.id
+                    WHERE p.participante = ?
+                """, conn, params=(usuario,))
+
+                jornadas_participadas_ids = set(jornadas_participadas['jornada_id'].tolist())
+
+                # Calcular jornadas sin participar
+                sin_participar = jornadas_totales - len(jornadas_participadas_ids)
+                datos['jornadas_sin_participar'] = sin_participar
+
+                # Calcular deuda
+                deuda = 0
+                for _, jornada in jornadas_info.iterrows():
+                    if jornada['id'] not in jornadas_participadas_ids:
+                        if jornada['es_estrella'] == 1:
+                            deuda += 2  # Jornada estrella: 2€
+                        else:
+                            deuda += 1  # Jornada normal: 1€
+                datos['debe_euros'] = deuda
+
+        else:
+            # Usuario NO tiene ningún pronóstico
+            datos = {
+                'participante': usuario,
+                'puntos_totales': 0,
+                'aciertos': 0,
+                'total_predicciones': 0,
+                'jornadas_jugadas': 0,
+                'promedio_puntos': 0.0,
+                'mejor_pronostico': 0
+            }
+
+            if incluir_deuda:
+                datos['jornadas_sin_participar'] = jornadas_totales
+
+                # Calcular deuda total
+                deuda = 0
+                for _, jornada in jornadas_info.iterrows():
+                    if jornada['es_estrella'] == 1:
+                        deuda += 2
+                    else:
+                        deuda += 1
+                datos['debe_euros'] = deuda
+
+        todos_usuarios.append(datos)
+
     conn.close()
-    return df
+
+    df_final = pd.DataFrame(todos_usuarios)
+    df_final = df_final.sort_values('puntos_totales', ascending=False).reset_index(drop=True)
+
+    return df_final
 
 def get_jornadas():
     """Obtiene todas las jornadas"""
@@ -1967,7 +2090,8 @@ if tab5 is not None:
 with tab6:
     st.header("🏆 Clasificaciones")
 
-    clasificacion_general = get_clasificacion_general()
+    # Obtener clasificación con o sin deuda según el rol
+    clasificacion_general = get_clasificacion_general(incluir_deuda=is_admin)
 
     if len(clasificacion_general) > 0:
         # Clasificación General
@@ -1976,10 +2100,19 @@ with tab6:
         # Añadir posición
         clasificacion_general.insert(0, 'Posición', range(1, len(clasificacion_general) + 1))
 
-        # Formatear columnas
+        # Formatear columnas según el rol
         clasificacion_display = clasificacion_general.copy()
-        clasificacion_display.columns = ['#', 'Participante', 'Puntos', 'Aciertos',
-                                         'Total Pronósticos', 'Jornadas', 'Promedio', 'Mejor Pronóstico']
+
+        if is_admin:
+            # Admin ve todas las columnas incluyendo deuda
+            clasificacion_display.columns = ['#', 'Participante', 'Puntos', 'Aciertos',
+                                             'Total Pronósticos', 'Jornadas Jugadas', 'Promedio', 'Mejor Pronóstico',
+                                             'Jornadas Sin Participar', 'Debe (€)']
+            st.warning("⚠️ **Solo visible para admin:** Las columnas 'Jornadas Sin Participar' y 'Debe (€)' no son visibles para otros usuarios")
+        else:
+            # Usuarios normales no ven columnas de deuda
+            clasificacion_display.columns = ['#', 'Participante', 'Puntos', 'Aciertos',
+                                             'Total Pronósticos', 'Jornadas', 'Promedio', 'Mejor Pronóstico']
 
         st.dataframe(clasificacion_display, use_container_width=True, hide_index=True)
 
