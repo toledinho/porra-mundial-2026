@@ -603,7 +603,8 @@ def get_clasificacion_jornada(jornada_id):
             })
 
     df_final = pd.DataFrame(todos_usuarios)
-    df_final = df_final.sort_values('puntos_totales', ascending=False).reset_index(drop=True)
+    # Ordenar por puntos (descendente) y luego alfabéticamente por nombre (ascendente)
+    df_final = df_final.sort_values(by=['puntos_totales', 'participante'], ascending=[False, True]).reset_index(drop=True)
 
     return df_final
 
@@ -719,7 +720,8 @@ def get_clasificacion_general(incluir_deuda=False):
     conn.close()
 
     df_final = pd.DataFrame(todos_usuarios)
-    df_final = df_final.sort_values('puntos_totales', ascending=False).reset_index(drop=True)
+    # Ordenar por puntos (descendente) y luego alfabéticamente por nombre (ascendente)
+    df_final = df_final.sort_values(by=['puntos_totales', 'participante'], ascending=[False, True]).reset_index(drop=True)
 
     return df_final
 
@@ -1285,7 +1287,12 @@ with tab1:
         st.subheader(f"📅 Última Jornada: {jornadas_df.iloc[0]['nombre']}")
         ultima_jornada_id = jornadas_df.iloc[0]['id']
         clasificacion_ultima = get_clasificacion_jornada(ultima_jornada_id)
-        st.dataframe(clasificacion_ultima, use_container_width=True)
+
+        # Añadir ranking
+        clasificacion_ultima.insert(0, 'Posición', range(1, len(clasificacion_ultima) + 1))
+        clasificacion_ultima.columns = ['#', 'Participante', 'Puntos Jornada', 'Exactos', 'Ganador+Dif', 'Solo Ganador']
+
+        st.dataframe(clasificacion_ultima, use_container_width=True, hide_index=True)
     else:
         st.info("👋 ¡Bienvenido! No hay jornadas registradas aún. Ve a la pestaña 'Nueva Jornada' para comenzar.")
 
