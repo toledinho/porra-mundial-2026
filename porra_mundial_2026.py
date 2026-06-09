@@ -2639,7 +2639,7 @@ if not is_admin and 'tab_info' in locals():
         | Resultado exacto (dif ≤ 1) | **10** | Predices 1-0 y sale 1-0 o 1-1 y sale 1-1 |
         | Empate sin resultado exacto | **6** | Predices 1-1 y sale 2-2 |
         | Ganador + diferencia | **6** | Predices 2-0 y sale 3-1 (ambos +2 local) |
-        | Solo ganador | **4** | Predices 1-0 y sale 2-1 |
+        | Solo ganador | **4** | Predices 1-0 y sale 3-1 (diferencias distintas) |
         | Fallo | **0** | Ganador incorrecto |
 
         ### ⭐ Jornadas Estrella
