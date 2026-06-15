@@ -1284,7 +1284,8 @@ with tab1:
             </div>
             """, unsafe_allow_html=True)
 
-        clasificacion = get_clasificacion_general()
+        # Obtener clasificación para stats (sin deuda)
+        clasificacion = get_clasificacion_general(incluir_deuda=False)
 
         with col3:
             if len(clasificacion) > 0:
@@ -1309,9 +1310,13 @@ with tab1:
 
         # Clasificación General Completa
         st.subheader("🏆 Clasificación General del Mundial 2026")
-        if len(clasificacion) > 0:
+
+        # Obtener clasificación con o sin deuda según el rol
+        clasificacion_completa = get_clasificacion_general(incluir_deuda=is_admin)
+
+        if len(clasificacion_completa) > 0:
             # Añadir posición
-            clasificacion_display = clasificacion.copy()
+            clasificacion_display = clasificacion_completa.copy()
             clasificacion_display.insert(0, 'Posición', range(1, len(clasificacion_display) + 1))
 
             # Formatear columnas según el rol
