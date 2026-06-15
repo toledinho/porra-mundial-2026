@@ -515,28 +515,37 @@ def procesar_archivo_jornada(archivo, jornada_id, partido_doble=None):
         return False, f"Error al procesar archivo: {str(e)}"
 
 def actualizar_resultados_jornada(jornada_id, resultados):
-    """Actualiza los resultados reales y recalcula puntos"""
+    """Actualiza los resultados reales y recalcula puntos
+
+    Solo actualiza los partidos que tengan un resultado válido (no vacío).
+    Conserva los resultados existentes si no se proporciona uno nuevo.
+    """
     conn = get_conn()
     c = conn.cursor()
 
     try:
         # Actualizar resultados de partidos
         for partido_id, resultado in resultados.items():
-            c.execute("UPDATE partidos SET resultado_real = ? WHERE id = ?", (resultado, partido_id))
+            # Limpiar resultado
+            resultado_limpio = resultado.strip() if resultado and resultado.strip() else ""
 
-            # Obtener si es partido doble
-            c.execute("SELECT es_doble FROM partidos WHERE id = ?", (partido_id,))
-            es_doble = c.fetchone()[0]
+            # Solo actualizar si hay un resultado válido (formato X-X)
+            if resultado_limpio and '-' in resultado_limpio:
+                c.execute("UPDATE partidos SET resultado_real = ? WHERE id = ?", (resultado_limpio, partido_id))
 
-            # Recalcular puntos de todos los pronósticos de este partido
-            c.execute("SELECT id, prediccion FROM pronosticos WHERE partido_id = ?", (partido_id,))
-            pronosticos = c.fetchall()
+                # Obtener si es partido doble
+                c.execute("SELECT es_doble FROM partidos WHERE id = ?", (partido_id,))
+                es_doble = c.fetchone()[0]
 
-            for pron_id, prediccion in pronosticos:
-                puntos = calcular_puntos(prediccion, resultado)
-                if es_doble:
-                    puntos *= 2
-                c.execute("UPDATE pronosticos SET puntos = ? WHERE id = ?", (puntos, pron_id))
+                # Recalcular puntos de todos los pronósticos de este partido
+                c.execute("SELECT id, prediccion FROM pronosticos WHERE partido_id = ?", (partido_id,))
+                pronosticos = c.fetchall()
+
+                for pron_id, prediccion in pronosticos:
+                    puntos = calcular_puntos(prediccion, resultado_limpio)
+                    if es_doble:
+                        puntos *= 2
+                    c.execute("UPDATE pronosticos SET puntos = ? WHERE id = ?", (puntos, pron_id))
 
         conn.commit()
         conn.close()
@@ -1298,23 +1307,23 @@ with tab1:
 
         st.markdown("---")
 
-        # Top 5
-        st.subheader("🏆 Top 5 Clasificación General")
+        # Clasificación General Completa
+        st.subheader("🏆 Clasificación General del Mundial 2026")
         if len(clasificacion) > 0:
-            top5 = clasificacion.head(5).copy()
-            top5.index = ['🥇', '🥈', '🥉', '4️⃣', '5️⃣'][:len(top5)]
-            st.dataframe(top5, use_container_width=True)
+            # Añadir posición
+            clasificacion_display = clasificacion.copy()
+            clasificacion_display.insert(0, 'Posición', range(1, len(clasificacion_display) + 1))
 
-        # Última jornada
-        st.subheader(f"📅 Última Jornada: {jornadas_df.iloc[0]['nombre']}")
-        ultima_jornada_id = jornadas_df.iloc[0]['id']
-        clasificacion_ultima = get_clasificacion_jornada(ultima_jornada_id)
+            # Formatear columnas según el rol
+            if is_admin:
+                clasificacion_display.columns = ['Posición', 'Participante', 'Puntos', 'Exactos',
+                                                 'Ganador+Dif', 'Solo Ganador', 'Jornadas Jugadas', 'Mejor Jornada',
+                                                 'Jornadas Sin Participar', 'Debe (€)']
+            else:
+                clasificacion_display.columns = ['Posición', 'Participante', 'Puntos', 'Exactos',
+                                                 'Ganador+Dif', 'Solo Ganador', 'Jornadas', 'Mejor Jornada']
 
-        # Añadir ranking
-        clasificacion_ultima.insert(0, 'Posición', range(1, len(clasificacion_ultima) + 1))
-        clasificacion_ultima.columns = ['Posición', 'Participante', 'Puntos Jornada', 'Exactos', 'Ganador+Dif', 'Solo Ganador']
-
-        st.dataframe(clasificacion_ultima, use_container_width=True, hide_index=True)
+            st.dataframe(clasificacion_display, use_container_width=True, hide_index=True)
     else:
         st.info("👋 ¡Bienvenido! No hay jornadas registradas aún. Ve a la pestaña 'Nueva Jornada' para comenzar.")
 
