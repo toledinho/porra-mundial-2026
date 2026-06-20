@@ -902,7 +902,9 @@ def exportar_pronosticos_jornada(jornada_id):
             if len(pron) > 0:
                 data_export[col_nombre].append(pron.iloc[0]['partido'])
                 data_export[col_pred].append(pron.iloc[0]['prediccion'])
-                data_export[col_resultado].append(pron.iloc[0]['resultado_real'] if pron.iloc[0]['resultado_real'] else 'Pendiente')
+                _r = pron.iloc[0]['resultado_real']
+                _r = str(_r) if _r is not None and str(_r).lower() != 'nan' else None
+                data_export[col_resultado].append(_r if _r else 'Pendiente')
                 puntos_display = pron.iloc[0]['puntos']
                 if pron.iloc[0]['es_doble'] and puntos_display > 0:
                     puntos_display = f"{puntos_display} (x2)"
@@ -2206,7 +2208,7 @@ if tab5 is not None:
                     equipos = nombre_partido.split(' vs ') if ' vs ' in nombre_partido else [nombre_partido, '']
 
                     # Extraer resultado actual si existe
-                    resultado_actual = partido['resultado_real'] if partido['resultado_real'] else ""
+                    resultado_actual = str(partido['resultado_real']) if partido['resultado_real'] is not None and str(partido['resultado_real']).lower() != 'nan' else ""
                     goles = resultado_actual.split('-') if resultado_actual and '-' in resultado_actual else ['', '']
 
                     col_local, col_gol_local, col_vs, col_gol_visit, col_visitante = st.columns([3, 1, 0.5, 1, 3])
@@ -2633,7 +2635,9 @@ if tab8 is not None:
                 st.markdown("**Partidos:**")
                 for _, partido in partidos_df.iterrows():
                     doble_text = " (⭐ Doble)" if partido['es_doble'] else ""
-                    resultado_text = f" - Resultado: {partido['resultado_real']}" if partido['resultado_real'] else ""
+                    _res = partido['resultado_real']
+                    _res = str(_res) if _res is not None and str(_res).lower() != 'nan' else None
+                    resultado_text = f" - Resultado: {_res}" if _res else ""
                     st.markdown(f"- **Partido {partido['numero_partido']}:** {partido['nombre']}{doble_text}{resultado_text}")
     else:
         if is_admin:
