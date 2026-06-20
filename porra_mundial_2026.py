@@ -1206,7 +1206,8 @@ with tab1:
                         partido = partidos_vigentes.iloc[partido_idx]
 
                         # Determinar estado y color
-                        if partido['resultado_real'] and partido['resultado_real'].strip():
+                        resultado_val = str(partido['resultado_real']) if partido['resultado_real'] is not None else ''
+                        if resultado_val.strip() and resultado_val.strip().lower() != 'nan':
                             estado_icon = "✅"
                             estado_text = partido['resultado_real']
                             bg_color = "#d4edda"
@@ -1226,7 +1227,8 @@ with tab1:
                         equipo_visitante = equipos[1] if len(equipos) > 1 else ''
 
                         # Extraer resultado si existe
-                        if partido['resultado_real'] and partido['resultado_real'].strip():
+                        resultado_val = str(partido['resultado_real']) if partido['resultado_real'] is not None else ''
+                        if resultado_val.strip() and resultado_val.strip().lower() != 'nan':
                             goles = partido['resultado_real'].split('-')
                             goles_local = goles[0].strip() if len(goles) > 0 else ''
                             goles_visitante = goles[1].strip() if len(goles) > 1 else ''
