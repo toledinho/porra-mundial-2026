@@ -549,11 +549,13 @@ def actualizar_resultados_jornada(jornada_id, resultados):
 
         conn.commit()
         conn.close()
+        st.cache_data.clear()
         return True
     except Exception as e:
         conn.close()
         return False
 
+@st.cache_data(ttl=60)
 def get_clasificacion_jornada(jornada_id):
     """Obtiene la clasificación de una jornada específica, incluyendo usuarios sin participar"""
     conn = get_conn()
@@ -617,6 +619,7 @@ def get_clasificacion_jornada(jornada_id):
 
     return df_final
 
+@st.cache_data(ttl=60)
 def get_clasificacion_general(incluir_deuda=False):
     """Obtiene la clasificación general del torneo
 
@@ -756,6 +759,7 @@ def get_clasificacion_general(incluir_deuda=False):
 
     return df_final
 
+@st.cache_data(ttl=60)
 def get_jornadas():
     """Obtiene todas las jornadas"""
     conn = get_conn()
@@ -763,6 +767,7 @@ def get_jornadas():
     conn.close()
     return df
 
+@st.cache_data(ttl=60)
 def get_jornada_vigente():
     """Obtiene la jornada vigente: la más reciente que aún no haya pasado su fecha fin"""
     conn = get_conn()
@@ -778,6 +783,7 @@ def get_jornada_vigente():
     conn.close()
     return df.iloc[0] if len(df) > 0 else None
 
+@st.cache_data(ttl=60)
 def get_evolucion_puntos():
     """Obtiene la evolución de puntos por jornada de cada participante"""
     conn = get_conn()
@@ -796,6 +802,7 @@ def get_evolucion_puntos():
     conn.close()
     return df
 
+@st.cache_data(ttl=60)
 def get_estadisticas_participante(participante):
     """Obtiene estadísticas detalladas de un participante"""
     conn = get_conn()
@@ -2111,6 +2118,7 @@ if tab4 is not None:
 
                         conn.commit()
                         conn.close()
+                        st.cache_data.clear()
 
                         st.success(f"✅ Pronósticos de **{usuario_seleccionado}** guardados correctamente!")
                         st.balloons()
