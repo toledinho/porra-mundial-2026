@@ -3,6 +3,7 @@ Módulo de conexión a base de datos
 Soporta SQLite local y Turso (SQLite en la nube)
 """
 import os
+import streamlit as st
 
 # Variable global para caché
 _USE_TURSO = None
@@ -36,37 +37,22 @@ def get_conn():
     else:
         return _get_sqlite_conn()
 
+@st.cache_resource
+def _get_turso_client():
+    """Crea y cachea el cliente Turso (una sola instancia por sesión de servidor)"""
+    import libsql_client
+    TURSO_URL = st.secrets.get("TURSO_URL", os.getenv("TURSO_URL"))
+    TURSO_TOKEN = st.secrets.get("TURSO_TOKEN", os.getenv("TURSO_TOKEN"))
+    if not TURSO_URL or not TURSO_TOKEN:
+        raise ValueError("TURSO_URL y TURSO_TOKEN deben estar configurados")
+    http_url = TURSO_URL.replace("libsql://", "https://")
+    print("✅ Usando Turso (base de datos en la nube)")
+    return libsql_client.create_client_sync(url=http_url, auth_token=TURSO_TOKEN)
+
 def _get_turso_conn():
-    """Retorna conexión a Turso"""
-    global _turso_module_loaded
-
-    if not _turso_module_loaded:
-        try:
-            global libsql_client
-            import libsql_client
-            _turso_module_loaded = True
-            print("✅ Usando Turso (base de datos en la nube)")
-        except Exception as e:
-            print(f"⚠️ Error importando libsql_client: {e}")
-            print("Fallback a SQLite local")
-            return _get_sqlite_conn()
-
+    """Retorna conexión a Turso usando el cliente cacheado"""
     try:
-        import streamlit as st
-        TURSO_URL = st.secrets.get("TURSO_URL", os.getenv("TURSO_URL"))
-        TURSO_TOKEN = st.secrets.get("TURSO_TOKEN", os.getenv("TURSO_TOKEN"))
-
-        if not TURSO_URL or not TURSO_TOKEN:
-            raise ValueError("TURSO_URL y TURSO_TOKEN deben estar configurados")
-
-        # Convertir libsql:// a https:// para usar HTTP en lugar de WebSocket
-        http_url = TURSO_URL.replace("libsql://", "https://")
-
-        client = libsql_client.create_client_sync(
-            url=http_url,
-            auth_token=TURSO_TOKEN
-        )
-
+        client = _get_turso_client()
         return TursoConnection(client)
     except Exception as e:
         print(f"⚠️ Error conectando a Turso: {e}")
