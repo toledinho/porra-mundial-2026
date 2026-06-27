@@ -2038,7 +2038,7 @@ if tab4 is not None:
                     with col_gol_local:
                         gol_local_pred = st.text_input(
                             f"Goles Local Pred {partido['id']}",
-                            value=goles[0].strip() if len(goles) > 0 else "",
+                            value="",
                             placeholder="0",
                             key=f"gol_local_pred_{partido['id']}",
                             label_visibility="collapsed"
@@ -2050,7 +2050,7 @@ if tab4 is not None:
                     with col_gol_visit:
                         gol_visit_pred = st.text_input(
                             f"Goles Visitante Pred {partido['id']}",
-                            value=goles[1].strip() if len(goles) > 1 else "",
+                            value="",
                             placeholder="0",
                             key=f"gol_visit_pred_{partido['id']}",
                             label_visibility="collapsed"
