@@ -1,7 +1,5 @@
 import streamlit as st
 import pandas as pd
-import plotly.express as px
-import plotly.graph_objects as go
 from datetime import datetime
 from pathlib import Path
 import io
@@ -555,7 +553,7 @@ def actualizar_resultados_jornada(jornada_id, resultados):
         conn.close()
         return False
 
-@st.cache_data(ttl=60)
+@st.cache_data(ttl=60, max_entries=5)
 def get_clasificacion_jornada(jornada_id):
     """Obtiene la clasificación de una jornada específica, incluyendo usuarios sin participar"""
     conn = get_conn()
@@ -619,7 +617,7 @@ def get_clasificacion_jornada(jornada_id):
 
     return df_final
 
-@st.cache_data(ttl=60)
+@st.cache_data(ttl=60, max_entries=5)
 def get_clasificacion_general(incluir_deuda=False):
     """Obtiene la clasificación general del torneo
 
@@ -759,7 +757,7 @@ def get_clasificacion_general(incluir_deuda=False):
 
     return df_final
 
-@st.cache_data(ttl=60)
+@st.cache_data(ttl=60, max_entries=5)
 def get_jornadas():
     """Obtiene todas las jornadas"""
     conn = get_conn()
@@ -767,7 +765,7 @@ def get_jornadas():
     conn.close()
     return df
 
-@st.cache_data(ttl=60)
+@st.cache_data(ttl=60, max_entries=5)
 def get_jornada_vigente():
     """Obtiene la jornada vigente: la más reciente que aún no haya pasado su fecha fin"""
     conn = get_conn()
