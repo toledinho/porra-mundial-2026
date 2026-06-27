@@ -783,61 +783,6 @@ def get_jornada_vigente():
     conn.close()
     return df.iloc[0] if len(df) > 0 else None
 
-@st.cache_data(ttl=60)
-def get_evolucion_puntos():
-    """Obtiene la evolución de puntos por jornada de cada participante"""
-    conn = get_conn()
-    query = """
-        SELECT
-            j.numero as jornada,
-            p.participante,
-            SUM(p.puntos) as puntos
-        FROM pronosticos p
-        INNER JOIN partidos pa ON p.partido_id = pa.id
-        INNER JOIN jornadas j ON pa.jornada_id = j.id
-        GROUP BY j.numero, p.participante
-        ORDER BY j.numero, p.participante
-    """
-    df = pd.read_sql_query(query, conn)
-    conn.close()
-    return df
-
-@st.cache_data(ttl=60)
-def get_estadisticas_participante(participante):
-    """Obtiene estadísticas detalladas de un participante"""
-    conn = get_conn()
-
-    # Puntos por jornada
-    query_jornadas = """
-        SELECT
-            j.numero,
-            j.nombre,
-            SUM(p.puntos) as puntos
-        FROM pronosticos p
-        INNER JOIN partidos pa ON p.partido_id = pa.id
-        INNER JOIN jornadas j ON pa.jornada_id = j.id
-        WHERE p.participante = ?
-        GROUP BY j.id
-        ORDER BY j.numero
-    """
-    df_jornadas = pd.read_sql_query(query_jornadas, conn, params=(participante,))
-
-    # Estadísticas generales
-    query_stats = """
-        SELECT
-            COUNT(CASE WHEN puntos = 12 THEN 1 END) as exactos_dif_mayor,
-            COUNT(CASE WHEN puntos = 10 THEN 1 END) as exactos_dif_menor,
-            COUNT(CASE WHEN puntos = 6 THEN 1 END) as ganador_dif_correcta,
-            COUNT(CASE WHEN puntos = 4 THEN 1 END) as solo_ganador,
-            COUNT(CASE WHEN puntos = 0 THEN 1 END) as fallos
-        FROM pronosticos p
-        INNER JOIN partidos pa ON p.partido_id = pa.id
-        WHERE p.participante = ?
-    """
-    df_stats = pd.read_sql_query(query_stats, conn, params=(participante,))
-
-    conn.close()
-    return df_jornadas, df_stats
 
 def exportar_pronosticos_jornada(jornada_id):
     """Exporta todos los pronósticos de una jornada en formato CSV para auditoría"""
@@ -1137,39 +1082,37 @@ with st.sidebar:
 # Tabs principales - mostrar según nivel de acceso
 if is_admin:
     # Admin ve todo
-    tab1, tab2, tab3, tab4, tab5, tab6, tab7, tab8 = st.tabs([
+    tab1, tab2, tab3, tab4, tab5, tab6, tab8 = st.tabs([
         "📊 Inicio",
         "👥 Usuarios",
         "➕ Nueva Jornada",
         "📝 Ingresar Pronósticos",
         "⚽ Resultados",
         "🏆 Clasificaciones",
-        "📈 Estadísticas",
         "📜 Histórico"
     ])
+    tab7 = None
 elif is_responsable:
     # Responsable ve ingresar pronósticos, consultas e histórico
-    tab1, tab4, tab6, tab7, tab8, tab_info = st.tabs([
+    tab1, tab4, tab6, tab8, tab_info = st.tabs([
         "📊 Inicio",
         "📝 Ingresar Pronósticos",
         "🏆 Clasificaciones",
-        "📈 Estadísticas",
         "📜 Histórico",
         "ℹ️ Info"
     ])
     # Crear tabs dummy
-    tab2 = tab3 = tab5 = None
+    tab2 = tab3 = tab5 = tab7 = None
 else:
     # Usuarios públicos ven histórico también
-    tab1, tab6, tab7, tab8, tab_info = st.tabs([
+    tab1, tab6, tab8, tab_info = st.tabs([
         "📊 Inicio",
         "🏆 Clasificaciones",
-        "📈 Estadísticas",
         "📜 Histórico",
         "ℹ️ Info"
     ])
     # Crear tabs dummy
-    tab2 = tab3 = tab4 = tab5 = None
+    tab2 = tab3 = tab4 = tab5 = tab7 = None
 
 # TAB 1: INICIO
 with tab1:
@@ -2452,138 +2395,6 @@ with tab6:
         st.info("No hay datos de clasificación aún. Crea una jornada primero.")
 
 # TAB 7: ESTADÍSTICAS
-with tab7:
-    st.header("📈 Estadísticas y Análisis")
-
-    clasificacion = get_clasificacion_general()
-
-    if len(clasificacion) > 0:
-        # Evolución de puntos
-        st.subheader("📊 Evolución de Puntos por Jornada")
-
-        evolucion = get_evolucion_puntos()
-
-        if len(evolucion) > 0:
-            # Calcular puntos acumulados
-            evolucion_acumulada = evolucion.pivot(index='jornada', columns='participante', values='puntos').fillna(0).cumsum()
-
-            fig = go.Figure()
-
-            for participante in evolucion_acumulada.columns:
-                fig.add_trace(go.Scatter(
-                    x=evolucion_acumulada.index,
-                    y=evolucion_acumulada[participante],
-                    mode='lines+markers',
-                    name=participante,
-                    line=dict(width=2),
-                    marker=dict(size=8)
-                ))
-
-            fig.update_layout(
-                title="Evolución de Puntos Acumulados",
-                xaxis_title="Jornada",
-                yaxis_title="Puntos Acumulados",
-                hovermode='x unified',
-                height=500
-            )
-
-            st.plotly_chart(fig, use_container_width=True)
-
-        st.markdown("---")
-
-        # Estadísticas por participante
-        st.subheader("👤 Estadísticas Individuales")
-
-        participante_seleccionado = st.selectbox(
-            "Selecciona un participante",
-            options=clasificacion['participante'].tolist()
-        )
-
-        df_jornadas, df_stats = get_estadisticas_participante(participante_seleccionado)
-
-        col1, col2 = st.columns(2)
-
-        with col1:
-            st.markdown("**Distribución de Puntuaciones**")
-            stats = df_stats.iloc[0]
-
-            fig_pie = go.Figure(data=[go.Pie(
-                labels=['Exactos (12pts)', 'Exactos (10pts)', 'Ganador+Dif (6pts)', 'Solo Ganador (4pts)', 'Fallos (0pts)'],
-                values=[stats['exactos_dif_mayor'], stats['exactos_dif_menor'],
-                       stats['ganador_dif_correcta'], stats['solo_ganador'], stats['fallos']],
-                hole=0.3
-            )])
-
-            fig_pie.update_layout(height=400)
-            st.plotly_chart(fig_pie, use_container_width=True)
-
-        with col2:
-            st.markdown("**Puntos por Jornada**")
-
-            fig_bar = px.bar(df_jornadas, x='numero', y='puntos',
-                            labels={'numero': 'Jornada', 'puntos': 'Puntos'},
-                            text='puntos')
-            fig_bar.update_layout(height=400)
-            st.plotly_chart(fig_bar, use_container_width=True)
-
-        st.markdown("---")
-
-        # Comparativa de participantes
-        st.subheader("⚖️ Evolución de Participantes")
-
-        # Multiselect para elegir participantes
-        todos_participantes = clasificacion['participante'].tolist()
-
-        participantes_seleccionados = st.multiselect(
-            "Selecciona los participantes a comparar",
-            options=todos_participantes,
-            default=todos_participantes[:5] if len(todos_participantes) >= 5 else todos_participantes,
-            help="Puedes seleccionar múltiples participantes para ver su evolución"
-        )
-
-        if len(participantes_seleccionados) > 0:
-            # Obtener evolución de puntos
-            evolucion = get_evolucion_puntos()
-
-            if len(evolucion) > 0:
-                # Filtrar solo los participantes seleccionados
-                evolucion_filtrada = evolucion[evolucion['participante'].isin(participantes_seleccionados)]
-
-                # Calcular puntos acumulados
-                evolucion_acumulada = evolucion_filtrada.pivot(index='jornada', columns='participante', values='puntos').fillna(0).cumsum()
-
-                # Crear gráfico de líneas
-                fig = go.Figure()
-
-                for participante in participantes_seleccionados:
-                    if participante in evolucion_acumulada.columns:
-                        fig.add_trace(go.Scatter(
-                            x=evolucion_acumulada.index,
-                            y=evolucion_acumulada[participante],
-                            mode='lines+markers',
-                            name=participante,
-                            line=dict(width=3),
-                            marker=dict(size=8)
-                        ))
-
-                fig.update_layout(
-                    title=f"Evolución de Puntos Acumulados - {len(participantes_seleccionados)} Participantes",
-                    xaxis_title="Jornada",
-                    yaxis_title="Puntos Acumulados",
-                    hovermode='x unified',
-                    height=500,
-                    showlegend=True
-                )
-
-                st.plotly_chart(fig, use_container_width=True)
-            else:
-                st.info("No hay datos de evolución disponibles aún")
-        else:
-            st.info("👆 Selecciona al menos un participante para ver su evolución")
-
-    else:
-        st.info("No hay estadísticas disponibles aún. Crea una jornada primero.")
-
 # TAB 8: HISTÓRICO
 if tab8 is not None:
   with tab8:
