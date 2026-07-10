@@ -123,7 +123,8 @@ def init_db():
         fecha TEXT,
         fase TEXT,
         estado_pronosticos TEXT DEFAULT 'cerrada',
-        fecha_fin TEXT
+        fecha_fin TEXT,
+        precio INTEGER DEFAULT 1
     )''')
 
     # Migración: Añadir columna estado_pronosticos si no existe (para bases de datos antiguas)
@@ -138,6 +139,14 @@ def init_db():
         c.execute("SELECT fecha_fin FROM jornadas LIMIT 1")
     except:
         c.execute("ALTER TABLE jornadas ADD COLUMN fecha_fin TEXT")
+        conn.commit()
+
+    # Migración: Añadir columna precio si no existe
+    try:
+        c.execute("SELECT precio FROM jornadas LIMIT 1")
+    except:
+        c.execute("ALTER TABLE jornadas ADD COLUMN precio INTEGER DEFAULT 1")
+        c.execute("UPDATE jornadas SET precio = 2 WHERE es_estrella >= 1")
         conn.commit()
 
     # Tabla de partidos
@@ -302,13 +311,13 @@ def cargar_usuarios_desde_archivo(archivo):
     except Exception as e:
         return False, f"Error al procesar archivo: {str(e)}"
 
-def crear_jornada(numero, nombre, es_estrella, fase="Fase de Grupos", fecha_fin=None):
+def crear_jornada(numero, nombre, es_estrella, fase="Fase de Grupos", fecha_fin=None, precio=1):
     """Crea una nueva jornada"""
     conn = get_conn()
     c = conn.cursor()
     fecha = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    c.execute("INSERT INTO jornadas (numero, nombre, es_estrella, fecha, fase, fecha_fin) VALUES (?, ?, ?, ?, ?, ?)",
-              (numero, nombre, es_estrella, fecha, fase, fecha_fin))
+    c.execute("INSERT INTO jornadas (numero, nombre, es_estrella, fecha, fase, fecha_fin, precio) VALUES (?, ?, ?, ?, ?, ?, ?)",
+              (numero, nombre, es_estrella, fecha, fase, fecha_fin, precio))
     jornada_id = c.lastrowid
     conn.commit()
     conn.close()
@@ -703,7 +712,7 @@ def get_clasificacion_general(incluir_deuda=False):
     jornadas_totales = pd.read_sql_query("SELECT COUNT(*) as total FROM jornadas", conn)['total'].iloc[0]
 
     # Obtener todas las jornadas con su tipo (normal o estrella)
-    jornadas_info = pd.read_sql_query("SELECT id, es_estrella FROM jornadas", conn)
+    jornadas_info = pd.read_sql_query("SELECT id, es_estrella, precio FROM jornadas", conn)
 
     # Crear DataFrame completo con todos los usuarios
     todos_usuarios = []
@@ -741,10 +750,7 @@ def get_clasificacion_general(incluir_deuda=False):
                 deuda = 0
                 for _, jornada in jornadas_info.iterrows():
                     if jornada['id'] not in jornadas_participadas_ids:
-                        if jornada['es_estrella'] >= 1:
-                            deuda += 2  # Estrella y super estrella: 2€
-                        else:
-                            deuda += 1  # Jornada normal: 1€
+                        deuda += int(jornada['precio'])
                 datos['debe_euros'] = deuda
 
         else:
@@ -765,10 +771,7 @@ def get_clasificacion_general(incluir_deuda=False):
                 # Calcular deuda total
                 deuda = 0
                 for _, jornada in jornadas_info.iterrows():
-                    if jornada['es_estrella'] >= 1:
-                        deuda += 2  # Estrella y super estrella: 2€
-                    else:
-                        deuda += 1  # Jornada normal: 1€
+                    deuda += int(jornada['precio'])
                 datos['debe_euros'] = deuda
 
         todos_usuarios.append(datos)
@@ -1716,6 +1719,13 @@ if tab3 is not None:
             num_partidos = st.number_input("¿Cuántos partidos tiene esta jornada?", min_value=1, max_value=20, value=5, key="num_partidos")
 
         with col_estrella:
+            precio_jornada = st.radio(
+                "💶 Precio de la jornada",
+                options=[1, 2],
+                format_func=lambda x: f"{x}€",
+                horizontal=True,
+                key="precio_jornada"
+            )
             es_estrella = st.checkbox("⭐ Jornada Estrella", key="es_estrella")
             partido_doble = None
             partido_triple = None
@@ -1897,7 +1907,7 @@ if tab3 is not None:
                     fecha_fin_str = fecha_fin.strftime("%Y-%m-%d") if fecha_fin else None
 
                     # Crear jornada
-                    jornada_id = crear_jornada(numero_jornada, nombre_jornada, nivel_jornada, fase, fecha_fin_str)
+                    jornada_id = crear_jornada(numero_jornada, nombre_jornada, nivel_jornada, fase, fecha_fin_str, precio_jornada)
 
                     # Establecer estado de pronósticos
                     estado = 'abierta' if abrir_pronosticos else 'cerrada'
