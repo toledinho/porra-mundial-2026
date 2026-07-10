@@ -148,8 +148,16 @@ def init_db():
         nombre TEXT,
         resultado_real TEXT,
         es_doble INTEGER DEFAULT 0,
+        es_triple INTEGER DEFAULT 0,
         FOREIGN KEY (jornada_id) REFERENCES jornadas (id)
     )''')
+
+    # Migración: Añadir columna es_triple si no existe (para bases de datos antiguas)
+    try:
+        c.execute("SELECT es_triple FROM partidos LIMIT 1")
+    except:
+        c.execute("ALTER TABLE partidos ADD COLUMN es_triple INTEGER DEFAULT 0")
+        conn.commit()
 
     # Tabla de pronósticos
     c.execute('''CREATE TABLE IF NOT EXISTS pronosticos (
@@ -370,8 +378,9 @@ def procesar_archivo_pronosticos(archivo, jornada_id, partidos_ids, partidos_dat
                     puntos = 0
                     if resultado_real:
                         puntos = calcular_puntos(prediccion, resultado_real)
-                        # Verificar si este partido puntúa doble
-                        if partidos_data[i]['es_doble']:
+                        if partidos_data[i].get('es_triple'):
+                            puntos *= 3
+                        elif partidos_data[i]['es_doble']:
                             puntos *= 2
 
                     c.execute("""INSERT INTO pronosticos (partido_id, participante, prediccion, puntos)
@@ -531,9 +540,10 @@ def actualizar_resultados_jornada(jornada_id, resultados):
             if resultado_limpio and '-' in resultado_limpio:
                 c.execute("UPDATE partidos SET resultado_real = ? WHERE id = ?", (resultado_limpio, partido_id))
 
-                # Obtener si es partido doble
-                c.execute("SELECT es_doble FROM partidos WHERE id = ?", (partido_id,))
-                es_doble = c.fetchone()[0]
+                # Obtener multiplicador del partido
+                c.execute("SELECT es_doble, es_triple FROM partidos WHERE id = ?", (partido_id,))
+                row = c.fetchone()
+                es_doble, es_triple = row[0], row[1]
 
                 # Recalcular puntos de todos los pronósticos de este partido
                 c.execute("SELECT id, prediccion FROM pronosticos WHERE partido_id = ?", (partido_id,))
@@ -541,7 +551,9 @@ def actualizar_resultados_jornada(jornada_id, resultados):
 
                 for pron_id, prediccion in pronosticos:
                     puntos = calcular_puntos(prediccion, resultado_limpio)
-                    if es_doble:
+                    if es_triple:
+                        puntos *= 3
+                    elif es_doble:
                         puntos *= 2
                     c.execute("UPDATE pronosticos SET puntos = ? WHERE id = ?", (puntos, pron_id))
 
@@ -564,15 +576,21 @@ def get_clasificacion_jornada(jornada_id):
             p.participante,
             SUM(p.puntos) as puntos_totales,
             COUNT(CASE
-                WHEN (p.puntos IN (10, 12) AND pa.es_doble = 0) OR (p.puntos IN (20, 24) AND pa.es_doble = 1)
+                WHEN (pa.es_triple = 0 AND pa.es_doble = 0 AND p.puntos IN (10, 12))
+                  OR (pa.es_doble = 1 AND p.puntos IN (20, 24))
+                  OR (pa.es_triple = 1 AND p.puntos IN (30, 36))
                 THEN 1
             END) as exactos,
             COUNT(CASE
-                WHEN (p.puntos = 6 AND pa.es_doble = 0) OR (p.puntos = 12 AND pa.es_doble = 1)
+                WHEN (pa.es_triple = 0 AND pa.es_doble = 0 AND p.puntos = 6)
+                  OR (pa.es_doble = 1 AND p.puntos = 12)
+                  OR (pa.es_triple = 1 AND p.puntos = 18)
                 THEN 1
             END) as ganador_diferencia,
             COUNT(CASE
-                WHEN (p.puntos = 4 AND pa.es_doble = 0) OR (p.puntos = 8 AND pa.es_doble = 1)
+                WHEN (pa.es_triple = 0 AND pa.es_doble = 0 AND p.puntos = 4)
+                  OR (pa.es_doble = 1 AND p.puntos = 8)
+                  OR (pa.es_triple = 1 AND p.puntos = 12)
                 THEN 1
             END) as solo_ganador
         FROM pronosticos p
@@ -630,15 +648,21 @@ def get_clasificacion_general(incluir_deuda=False):
             p.participante,
             SUM(p.puntos) as puntos_totales,
             COUNT(CASE
-                WHEN (p.puntos IN (10, 12) AND pa.es_doble = 0) OR (p.puntos IN (20, 24) AND pa.es_doble = 1)
+                WHEN (pa.es_triple = 0 AND pa.es_doble = 0 AND p.puntos IN (10, 12))
+                  OR (pa.es_doble = 1 AND p.puntos IN (20, 24))
+                  OR (pa.es_triple = 1 AND p.puntos IN (30, 36))
                 THEN 1
             END) as exactos,
             COUNT(CASE
-                WHEN (p.puntos = 6 AND pa.es_doble = 0) OR (p.puntos = 12 AND pa.es_doble = 1)
+                WHEN (pa.es_triple = 0 AND pa.es_doble = 0 AND p.puntos = 6)
+                  OR (pa.es_doble = 1 AND p.puntos = 12)
+                  OR (pa.es_triple = 1 AND p.puntos = 18)
                 THEN 1
             END) as ganador_diferencia,
             COUNT(CASE
-                WHEN (p.puntos = 4 AND pa.es_doble = 0) OR (p.puntos = 8 AND pa.es_doble = 1)
+                WHEN (pa.es_triple = 0 AND pa.es_doble = 0 AND p.puntos = 4)
+                  OR (pa.es_doble = 1 AND p.puntos = 8)
+                  OR (pa.es_triple = 1 AND p.puntos = 12)
                 THEN 1
             END) as solo_ganador,
             COUNT(DISTINCT pa.jornada_id) as jornadas_jugadas
@@ -717,8 +741,8 @@ def get_clasificacion_general(incluir_deuda=False):
                 deuda = 0
                 for _, jornada in jornadas_info.iterrows():
                     if jornada['id'] not in jornadas_participadas_ids:
-                        if jornada['es_estrella'] == 1:
-                            deuda += 2  # Jornada estrella: 2€
+                        if jornada['es_estrella'] >= 1:
+                            deuda += 2  # Estrella y super estrella: 2€
                         else:
                             deuda += 1  # Jornada normal: 1€
                 datos['debe_euros'] = deuda
@@ -741,10 +765,10 @@ def get_clasificacion_general(incluir_deuda=False):
                 # Calcular deuda total
                 deuda = 0
                 for _, jornada in jornadas_info.iterrows():
-                    if jornada['es_estrella'] == 1:
-                        deuda += 2
+                    if jornada['es_estrella'] >= 1:
+                        deuda += 2  # Estrella y super estrella: 2€
                     else:
-                        deuda += 1
+                        deuda += 1  # Jornada normal: 1€
                 datos['debe_euros'] = deuda
 
         todos_usuarios.append(datos)
@@ -792,7 +816,7 @@ def exportar_pronosticos_jornada(jornada_id):
 
     # Obtener partidos de la jornada
     query_partidos = """
-        SELECT id, numero_partido, nombre, resultado_real, es_doble
+        SELECT id, numero_partido, nombre, resultado_real, es_doble, es_triple
         FROM partidos
         WHERE jornada_id = ?
         ORDER BY numero_partido
@@ -808,7 +832,8 @@ def exportar_pronosticos_jornada(jornada_id):
             p.prediccion,
             pa.resultado_real,
             p.puntos,
-            pa.es_doble
+            pa.es_doble,
+            pa.es_triple
         FROM pronosticos p
         INNER JOIN partidos pa ON p.partido_id = pa.id
         WHERE pa.jornada_id = ?
@@ -856,7 +881,9 @@ def exportar_pronosticos_jornada(jornada_id):
                 _r = str(_r) if _r is not None and str(_r).lower() != 'nan' else None
                 data_export[col_resultado].append(_r if _r else 'Pendiente')
                 puntos_display = pron.iloc[0]['puntos']
-                if pron.iloc[0]['es_doble'] and puntos_display > 0:
+                if pron.iloc[0]['es_triple'] and puntos_display > 0:
+                    puntos_display = f"{puntos_display} (x3)"
+                elif pron.iloc[0]['es_doble'] and puntos_display > 0:
                     puntos_display = f"{puntos_display} (x2)"
                 data_export[col_puntos].append(puntos_display)
             else:
@@ -1121,7 +1148,7 @@ with tab1:
 
     if jornada_vigente is not None:
         # Header de jornada vigente con estilo
-        estrella_badge = "⭐" if jornada_vigente['es_estrella'] else ""
+        estrella_badge = "🌟" if jornada_vigente['es_estrella'] == 2 else ("⭐" if jornada_vigente['es_estrella'] else "")
         st.markdown(f"""
         <div style='background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
                     padding: 1.5rem;
@@ -1168,7 +1195,7 @@ with tab1:
                             bg_color = "#fff3cd"
                             border_color = "#ffc107"
 
-                        doble_badge = "⭐ DOBLE" if partido['es_doble'] else ""
+                        doble_badge = "🌟 TRIPLE" if partido['es_triple'] else ("⭐ DOBLE" if partido['es_doble'] else "")
 
                         # Extraer equipos del nombre (formato: "Equipo1 vs Equipo2")
                         nombre_partido = partido['nombre']
@@ -1228,11 +1255,11 @@ with tab1:
             """, unsafe_allow_html=True)
 
         with col2:
-            jornadas_estrella = len(jornadas_df[jornadas_df['es_estrella'] == 1])
+            jornadas_estrella = len(jornadas_df[jornadas_df['es_estrella'] >= 1])
             st.markdown(f"""
             <div class="stat-card">
                 <div class="stat-number">{jornadas_estrella}</div>
-                <div class="stat-label">Jornadas Estrella ⭐</div>
+                <div class="stat-label">Jornadas Estrella ⭐🌟</div>
             </div>
             """, unsafe_allow_html=True)
 
@@ -1690,20 +1717,39 @@ if tab3 is not None:
 
         with col_estrella:
             es_estrella = st.checkbox("⭐ Jornada Estrella", key="es_estrella")
+            partido_doble = None
+            partido_triple = None
             if es_estrella:
-                partido_doble = st.selectbox("¿Qué partido puntúa doble?",
-                                            options=list(range(1, num_partidos + 1)),
-                                            format_func=lambda x: f"Partido {x}",
+                opciones_partidos = [None] + list(range(1, num_partidos + 1))
+                formato_partido = lambda x: "Ninguno" if x is None else f"Partido {x}"
+                partido_doble = st.selectbox("¿Qué partido puntúa doble? (x2)",
+                                            options=opciones_partidos,
+                                            format_func=formato_partido,
                                             key="partido_doble_select")
-            else:
-                partido_doble = None
+                partido_triple = st.selectbox("¿Qué partido puntúa triple? (x3)",
+                                             options=opciones_partidos,
+                                             format_func=formato_partido,
+                                             key="partido_triple_select")
+
+        # Calcular nivel de jornada: 2=super estrella, 1=estrella, 0=normal
+        if es_estrella and partido_triple is not None:
+            nivel_jornada = 2
+        elif es_estrella:
+            nivel_jornada = 1
+        else:
+            nivel_jornada = 0
 
         st.markdown("**Ingresa los detalles de cada partido:**")
 
         # Crear formulario dinámico para cada partido
         partidos_data = []
         for i in range(num_partidos):
-            st.markdown(f"**Partido {i+1}** {'⭐ (Doble)' if es_estrella and partido_doble == i+1 else ''}")
+            badge = ""
+            if es_estrella and partido_triple == i + 1:
+                badge = " 🌟 (Triple)"
+            elif es_estrella and partido_doble == i + 1:
+                badge = " ⭐ (Doble)"
+            st.markdown(f"**Partido {i+1}**{badge}")
 
             # Layout: Equipo Local [goles] - [goles] Equipo Visitante
             col_local, col_gol_local, col_vs, col_gol_visit, col_visitante = st.columns([3, 1, 0.5, 1, 3])
@@ -1760,7 +1806,8 @@ if tab3 is not None:
                 'numero': i + 1,
                 'nombre': nombre_partido,
                 'resultado': resultado,
-                'es_doble': es_estrella and partido_doble == i + 1
+                'es_doble': es_estrella and partido_doble == i + 1,
+                'es_triple': es_estrella and partido_triple == i + 1
             })
 
         st.markdown("---")
@@ -1850,7 +1897,7 @@ if tab3 is not None:
                     fecha_fin_str = fecha_fin.strftime("%Y-%m-%d") if fecha_fin else None
 
                     # Crear jornada
-                    jornada_id = crear_jornada(numero_jornada, nombre_jornada, 1 if es_estrella else 0, fase, fecha_fin_str)
+                    jornada_id = crear_jornada(numero_jornada, nombre_jornada, nivel_jornada, fase, fecha_fin_str)
 
                     # Establecer estado de pronósticos
                     estado = 'abierta' if abrir_pronosticos else 'cerrada'
@@ -1864,9 +1911,9 @@ if tab3 is not None:
                     # Crear partidos manualmente
                     partidos_ids = []
                     for p in partidos_validos:
-                        c.execute("""INSERT INTO partidos (jornada_id, numero_partido, nombre, resultado_real, es_doble)
-                                    VALUES (?, ?, ?, ?, ?)""",
-                                 (jornada_id, p['numero'], p['nombre'], p['resultado'] if p['resultado'].strip() else None, 1 if p['es_doble'] else 0))
+                        c.execute("""INSERT INTO partidos (jornada_id, numero_partido, nombre, resultado_real, es_doble, es_triple)
+                                    VALUES (?, ?, ?, ?, ?, ?)""",
+                                 (jornada_id, p['numero'], p['nombre'], p['resultado'] if p['resultado'].strip() else None, 1 if p['es_doble'] else 0, 1 if p.get('es_triple') else 0))
                         partidos_ids.append(c.lastrowid)
 
                     conn.commit()
@@ -1919,7 +1966,9 @@ if tab4 is not None:
 
         st.markdown(f"### {jornada_info['nombre']}")
         st.markdown(f"**Fase:** {jornada_info['fase']}")
-        if jornada_info['es_estrella']:
+        if jornada_info['es_estrella'] == 2:
+            st.markdown("🌟 **Jornada Super Estrella** - Hay partidos con puntuación doble y/o triple")
+        elif jornada_info['es_estrella']:
             st.markdown("⭐ **Jornada Estrella** - Un partido puntúa doble")
 
         st.markdown("---")
@@ -1967,7 +2016,7 @@ if tab4 is not None:
                 pronosticos = {}
 
                 for _, partido in partidos_df.iterrows():
-                    doble_text = " ⭐ (Doble)" if partido['es_doble'] else ""
+                    doble_text = " 🌟 (Triple)" if partido['es_triple'] else (" ⭐ (Doble)" if partido['es_doble'] else "")
                     st.markdown(f"**Partido {partido['numero_partido']}**{doble_text}")
 
                     # Extraer equipos del nombre
@@ -2150,7 +2199,8 @@ if tab5 is not None:
             with st.form(key="form_actualizar_resultados"):
                 resultados_nuevos = {}
                 for idx, partido in partidos_df.iterrows():
-                    st.markdown(f"**Partido {partido['numero_partido']}** {'⭐ (Doble)' if partido['es_doble'] else ''}")
+                    badge = " 🌟 (Triple)" if partido['es_triple'] else (" ⭐ (Doble)" if partido['es_doble'] else "")
+                    st.markdown(f"**Partido {partido['numero_partido']}**{badge}")
 
                     # Extraer equipos del nombre (formato: "Equipo1 vs Equipo2")
                     nombre_partido = partido['nombre']
@@ -2416,11 +2466,13 @@ if tab8 is not None:
 
     if len(jornadas) > 0:
         for _, jornada in jornadas.iterrows():
-            with st.expander(f"{'⭐' if jornada['es_estrella'] else '📅'} {jornada['nombre']} - {jornada['fase']}"):
+            tipo_icon = "🌟" if jornada['es_estrella'] == 2 else ("⭐" if jornada['es_estrella'] else "📅")
+            tipo_text = "Jornada Super Estrella" if jornada['es_estrella'] == 2 else ("Jornada Estrella" if jornada['es_estrella'] else "Jornada Normal")
+            with st.expander(f"{tipo_icon} {jornada['nombre']} - {jornada['fase']}"):
                 st.markdown(f"**Fecha de creación:** {jornada['fecha']}")
                 if jornada.get('fecha_fin'):
                     st.markdown(f"**Fecha del último partido:** {jornada['fecha_fin']}")
-                st.markdown(f"**Tipo:** {'Jornada Estrella' if jornada['es_estrella'] else 'Jornada Normal'}")
+                st.markdown(f"**Tipo:** {tipo_text}")
 
                 # Botón de exportar pronósticos (solo admin)
                 if is_admin:
@@ -2444,14 +2496,14 @@ if tab8 is not None:
                 # Mostrar detalles de partidos
                 conn = get_conn()
                 partidos_df = pd.read_sql_query(
-                    "SELECT numero_partido, nombre, resultado_real, es_doble FROM partidos WHERE jornada_id = ?",
+                    "SELECT numero_partido, nombre, resultado_real, es_doble, es_triple FROM partidos WHERE jornada_id = ?",
                     conn, params=(jornada['id'],)
                 )
                 conn.close()
 
                 st.markdown("**Partidos:**")
                 for _, partido in partidos_df.iterrows():
-                    doble_text = " (⭐ Doble)" if partido['es_doble'] else ""
+                    doble_text = " (🌟 Triple)" if partido['es_triple'] else (" (⭐ Doble)" if partido['es_doble'] else "")
                     _res = partido['resultado_real']
                     _res = str(_res) if _res is not None and str(_res).lower() != 'nan' else None
                     resultado_text = f" - Resultado: {_res}" if _res else ""
@@ -2481,7 +2533,7 @@ if not is_admin and 'tab_info' in locals():
 
         ### ⭐ Jornadas Estrella
 
-        En las **jornadas estrella**, un partido designado puntúa el **doble (x2)**.
+        En las **jornadas estrella ⭐**, puede haber un partido que puntúe el **doble (x2)** y/o uno que puntúe el **triple (x3)**.
 
         ### 🏆 Clasificaciones
 
