@@ -6,23 +6,46 @@ import io
 import base64
 from database import get_conn
 
-# Lista oficial de selecciones participantes en el Mundial 2026 (48 equipos)
-SELECCIONES_MUNDIAL_2026 = [
-    "Alemania", "Arabia Saudita", "Argelia", "Argentina", "Australia",
-    "Austria", "Bélgica", "Bosnia y Herzegovina", "Brasil", "Cabo Verde",
-    "Canadá", "Catar", "Colombia", "Corea del Sur", "Costa de Marfil",
-    "Croacia", "Curazao", "Ecuador", "Egipto", "Escocia",
-    "España", "Estados Unidos", "Francia", "Ghana", "Haití",
-    "Inglaterra", "Irak", "Irán", "Japón", "Jordania",
-    "Marruecos", "México", "Noruega", "Nueva Zelanda", "Países Bajos",
-    "Panamá", "Paraguay", "Portugal", "República Checa", "República Democrática del Congo",
-    "Senegal", "Sudáfrica", "Suecia", "Suiza", "Túnez",
-    "Turquía", "Uruguay", "Uzbekistán"
+# Equipos LaLiga 2026-27
+EQUIPOS_PRIMERA = [
+    "Real Madrid", "Barcelona", "Atlético de Madrid", "Athletic Club", "Villarreal",
+    "Real Betis", "Sevilla", "Valencia", "Real Sociedad", "Celta de Vigo",
+    "Osasuna", "Mallorca", "Rayo Vallecano", "Getafe", "Girona",
+    "Espanyol", "Alavés", "Elche", "Racing de Santander", "Deportivo de La Coruña"
 ]
+
+EQUIPOS_SEGUNDA = [
+    "AD Ceuta", "Albacete", "Burgos", "Cádiz", "Castellón",
+    "Leganés", "Mirandés", "Córdoba", "Cultural Leonesa", "FC Andorra",
+    "Granada", "Málaga", "Racing Club Ferrol", "Real Sociedad B", "Deportivo",
+    "Sporting Gijón", "Valladolid", "Zaragoza", "Eibar", "Huesca",
+    "Almería", "Las Palmas"
+]
+
+EQUIPOS_PREMIER = [
+    "Arsenal", "Aston Villa", "Bournemouth", "Brentford", "Brighton",
+    "Burnley", "Chelsea", "Crystal Palace", "Everton", "Fulham",
+    "Leeds United", "Liverpool", "Manchester City", "Manchester United", "Newcastle United",
+    "Nottingham Forest", "Sunderland", "Tottenham", "West Ham", "Wolverhampton"
+]
+
+EQUIPOS_SERIE_A = [
+    "Atalanta", "Bologna", "Cagliari", "Como", "Fiorentina",
+    "Genoa", "Inter", "Juventus", "Lazio", "Lecce",
+    "Milan", "Napoli", "Parma", "Pisa", "Roma",
+    "Sassuolo", "Torino", "Udinese", "Verona", "Cremonese"
+]
+
+EQUIPOS_POR_LIGA = {
+    "LaLiga 1ª": EQUIPOS_PRIMERA,
+    "LaLiga 2ª": EQUIPOS_SEGUNDA,
+    "Premier League": EQUIPOS_PREMIER,
+    "Serie A": EQUIPOS_SERIE_A,
+}
 
 # Configuración de la página
 st.set_page_config(
-    page_title="Porra Mundial 2026",
+    page_title="Porra Liga 2026-27",
     page_icon="⚽",
     layout="wide",
     initial_sidebar_state="collapsed"
@@ -34,63 +57,61 @@ def get_base64_image(image_path):
     with open(image_path, "rb") as img_file:
         return base64.b64encode(img_file.read()).decode()
 
-# Sistema de puntuación Mundial 2026
+# Resultados por frecuencia histórica en liga española
+_RESULTADOS_COMUNES = frozenset([(1, 0), (0, 1), (1, 1), (2, 1), (1, 2)])
+_RESULTADOS_MODERADOS = frozenset([(2, 0), (0, 2), (0, 0), (2, 2), (3, 1), (1, 3)])
+
+# Sistema de puntuación Liga 2026-27
 def calcular_puntos(prediccion, resultado_real):
     """
-    Sistema de puntuación:
-    - 12 puntos: Resultado exacto con diferencia de goles > 1
-    - 10 puntos: Resultado exacto con diferencia de goles = 1 o empate
-    - 6 puntos: Ganador correcto + diferencia correcta (O empate sin resultado exacto - NUEVO)
-    - 4 puntos: Ganador correcto pero diferencia incorrecta
-    - 0 puntos: Ganador incorrecto
+    - 30 pts: Resultado exacto rarísimo (dif ≥4 o total ≥6 goles)
+    - 20 pts: Resultado exacto raro
+    - 14 pts: Resultado exacto moderado (2-0, 0-2, 0-0, 2-2, 3-1, 1-3)
+    - 10 pts: Resultado exacto común (1-0, 0-1, 1-1, 2-1, 1-2)
+    -  6 pts: Ganador correcto + misma diferencia de goles
+    -  4 pts: Solo ganador correcto (1X2)
+    -  0 pts: Ganador incorrecto
     """
     if prediccion is None or prediccion == "" or pd.isna(prediccion):
         return 0
-
     try:
-        pred_local, pred_visitante = map(int, str(prediccion).split('-'))
-        real_local, real_visitante = map(int, str(resultado_real).split('-'))
+        pred_local, pred_visit = map(int, str(prediccion).split('-'))
+        real_local, real_visit = map(int, str(resultado_real).split('-'))
     except:
         return 0
 
-    # Resultado exacto
-    if pred_local == real_local and pred_visitante == real_visitante:
-        dif_goles = abs(real_local - real_visitante)
-        if dif_goles > 1:
-            return 12
-        else:
+    if pred_local == real_local and pred_visit == real_visit:
+        dif = abs(real_local - real_visit)
+        total = real_local + real_visit
+        if dif >= 4 or total >= 6:
+            return 30
+        resultado = (real_local, real_visit)
+        if resultado in _RESULTADOS_COMUNES:
             return 10
+        if resultado in _RESULTADOS_MODERADOS:
+            return 14
+        return 20
 
-    # Determinar ganadores
-    if pred_local > pred_visitante:
-        resultado_previsto = 'local'
-    elif pred_local < pred_visitante:
-        resultado_previsto = 'visitante'
+    if pred_local > pred_visit:
+        signo_pred = 'local'
+    elif pred_local < pred_visit:
+        signo_pred = 'visitante'
     else:
-        resultado_previsto = 'empate'
+        signo_pred = 'empate'
 
-    if real_local > real_visitante:
-        resultado_real_ganador = 'local'
-    elif real_local < real_visitante:
-        resultado_real_ganador = 'visitante'
+    if real_local > real_visit:
+        signo_real = 'local'
+    elif real_local < real_visit:
+        signo_real = 'visitante'
     else:
-        resultado_real_ganador = 'empate'
+        signo_real = 'empate'
 
-    # NUEVO: Si acertó empate (pero no resultado exacto) = 6 puntos
-    if resultado_previsto == 'empate' and resultado_real_ganador == 'empate':
-        return 6
+    if signo_pred != signo_real:
+        return 0
 
-    # Ganador correcto
-    if resultado_previsto == resultado_real_ganador:
-        dif_prevista = pred_local - pred_visitante
-        dif_real = real_local - real_visitante
-
-        if dif_prevista == dif_real:
-            return 6
-        else:
-            return 4
-
-    return 0
+    dif_pred = pred_local - pred_visit
+    dif_real = real_local - real_visit
+    return 6 if dif_pred == dif_real else 4
 
 # Funciones de base de datos
 def init_db():
@@ -158,6 +179,7 @@ def init_db():
         resultado_real TEXT,
         es_doble INTEGER DEFAULT 0,
         es_triple INTEGER DEFAULT 0,
+        liga TEXT DEFAULT 'LaLiga 1ª',
         FOREIGN KEY (jornada_id) REFERENCES jornadas (id)
     )''')
 
@@ -166,6 +188,13 @@ def init_db():
         c.execute("SELECT es_triple FROM partidos LIMIT 1")
     except:
         c.execute("ALTER TABLE partidos ADD COLUMN es_triple INTEGER DEFAULT 0")
+        conn.commit()
+
+    # Migración: Añadir columna liga si no existe
+    try:
+        c.execute("SELECT liga FROM partidos LIMIT 1")
+    except:
+        c.execute("ALTER TABLE partidos ADD COLUMN liga TEXT DEFAULT 'LaLiga 1ª'")
         conn.commit()
 
     # Tabla de pronósticos
@@ -585,9 +614,9 @@ def get_clasificacion_jornada(jornada_id):
             p.participante,
             SUM(p.puntos) as puntos_totales,
             COUNT(CASE
-                WHEN (pa.es_triple = 0 AND pa.es_doble = 0 AND p.puntos IN (10, 12))
-                  OR (pa.es_doble = 1 AND p.puntos IN (20, 24))
-                  OR (pa.es_triple = 1 AND p.puntos IN (30, 36))
+                WHEN (pa.es_triple = 0 AND pa.es_doble = 0 AND p.puntos IN (10, 14, 20, 30))
+                  OR (pa.es_doble = 1 AND p.puntos IN (20, 28, 40, 60))
+                  OR (pa.es_triple = 1 AND p.puntos IN (30, 42, 60, 90))
                 THEN 1
             END) as exactos,
             COUNT(CASE
@@ -657,9 +686,9 @@ def get_clasificacion_general(incluir_deuda=False):
             p.participante,
             SUM(p.puntos) as puntos_totales,
             COUNT(CASE
-                WHEN (pa.es_triple = 0 AND pa.es_doble = 0 AND p.puntos IN (10, 12))
-                  OR (pa.es_doble = 1 AND p.puntos IN (20, 24))
-                  OR (pa.es_triple = 1 AND p.puntos IN (30, 36))
+                WHEN (pa.es_triple = 0 AND pa.es_doble = 0 AND p.puntos IN (10, 14, 20, 30))
+                  OR (pa.es_doble = 1 AND p.puntos IN (20, 28, 40, 60))
+                  OR (pa.es_triple = 1 AND p.puntos IN (30, 42, 60, 90))
                 THEN 1
             END) as exactos,
             COUNT(CASE
@@ -1097,7 +1126,7 @@ is_responsable = (user_level == "responsable")
 is_authenticated = (is_admin or is_responsable)
 
 # Header
-st.markdown('<div class="main-header">⚽ Porra Mundial 2026 ⚽</div>', unsafe_allow_html=True)
+st.markdown('<div class="main-header">⚽ Porra Liga 2026-27 ⚽</div>', unsafe_allow_html=True)
 
 # Indicador de base de datos en sidebar
 with st.sidebar:
@@ -1291,7 +1320,7 @@ with tab1:
         st.markdown("---")
 
         # Clasificación General Completa
-        st.subheader("🏆 Clasificación General del Mundial 2026")
+        st.subheader("🏆 Clasificación General de la Liga 2026-27")
 
         # Obtener clasificación con o sin deuda según el rol
         clasificacion_completa = get_clasificacion_general(incluir_deuda=is_admin)
@@ -1697,8 +1726,8 @@ if tab3 is not None:
             nombre_jornada = st.text_input("Nombre de la Jornada", value=f"Jornada {siguiente_numero}", key="nombre_jornada")
 
         with col3:
-            fase = st.text_input("Fase del Mundial", value="Fase de Grupos",
-                               placeholder="Ej: Octavos, Semifinales, Final...", key="fase_jornada")
+            fase = st.text_input("Descripción de la Jornada", value="Jornadas de Liga",
+                               placeholder="Ej: Jornadas 1-5, Jornadas 6-10...", key="fase_jornada")
 
         st.markdown("**Fecha de la Jornada**")
         st.info("La jornada se mostrará en la página principal desde que se cree hasta que pase esta fecha")
@@ -1761,14 +1790,23 @@ if tab3 is not None:
                 badge = " ⭐ (Doble)"
             st.markdown(f"**Partido {i+1}**{badge}")
 
-            # Layout: Equipo Local [goles] - [goles] Equipo Visitante
-            col_local, col_gol_local, col_vs, col_gol_visit, col_visitante = st.columns([3, 1, 0.5, 1, 3])
+            col_liga, col_local, col_gol_local, col_vs, col_gol_visit, col_visitante = st.columns([2, 3, 1, 0.5, 1, 3])
+
+            with col_liga:
+                liga_partido = st.selectbox(
+                    f"Liga {i+1}",
+                    options=list(EQUIPOS_POR_LIGA.keys()),
+                    key=f"liga_{i}",
+                    label_visibility="collapsed"
+                )
+
+            equipos_disponibles = EQUIPOS_POR_LIGA[liga_partido]
 
             with col_local:
                 equipo_local = st.selectbox(
                     f"Equipo Local {i+1}",
-                    options=[""] + SELECCIONES_MUNDIAL_2026,
-                    format_func=lambda x: "Selecciona equipo local..." if x == "" else x,
+                    options=[""] + equipos_disponibles,
+                    format_func=lambda x: "Equipo local..." if x == "" else x,
                     key=f"equipo_local_{i}",
                     label_visibility="collapsed"
                 )
@@ -1795,13 +1833,12 @@ if tab3 is not None:
             with col_visitante:
                 equipo_visitante = st.selectbox(
                     f"Equipo Visitante {i+1}",
-                    options=[""] + SELECCIONES_MUNDIAL_2026,
-                    format_func=lambda x: "Selecciona equipo visitante..." if x == "" else x,
+                    options=[""] + equipos_disponibles,
+                    format_func=lambda x: "Equipo visitante..." if x == "" else x,
                     key=f"equipo_visit_{i}",
                     label_visibility="collapsed"
                 )
 
-            # Construir nombre del partido y resultado
             if equipo_local.strip() and equipo_visitante.strip():
                 nombre_partido = f"{equipo_local.strip()} vs {equipo_visitante.strip()}"
             else:
@@ -1817,7 +1854,8 @@ if tab3 is not None:
                 'nombre': nombre_partido,
                 'resultado': resultado,
                 'es_doble': es_estrella and partido_doble == i + 1,
-                'es_triple': es_estrella and partido_triple == i + 1
+                'es_triple': es_estrella and partido_triple == i + 1,
+                'liga': liga_partido
             })
 
         st.markdown("---")
@@ -1921,9 +1959,9 @@ if tab3 is not None:
                     # Crear partidos manualmente
                     partidos_ids = []
                     for p in partidos_validos:
-                        c.execute("""INSERT INTO partidos (jornada_id, numero_partido, nombre, resultado_real, es_doble, es_triple)
-                                    VALUES (?, ?, ?, ?, ?, ?)""",
-                                 (jornada_id, p['numero'], p['nombre'], p['resultado'] if p['resultado'].strip() else None, 1 if p['es_doble'] else 0, 1 if p.get('es_triple') else 0))
+                        c.execute("""INSERT INTO partidos (jornada_id, numero_partido, nombre, resultado_real, es_doble, es_triple, liga)
+                                    VALUES (?, ?, ?, ?, ?, ?, ?)""",
+                                 (jornada_id, p['numero'], p['nombre'], p['resultado'] if p['resultado'].strip() else None, 1 if p['es_doble'] else 0, 1 if p.get('es_triple') else 0, p.get('liga', 'LaLiga 1ª')))
                         partidos_ids.append(c.lastrowid)
 
                     conn.commit()
@@ -2340,7 +2378,7 @@ with tab6:
 
     if len(clasificacion_general) > 0:
         # Clasificación General
-        st.subheader("📊 Clasificación General del Mundial 2026")
+        st.subheader("📊 Clasificación General de la Liga 2026-27")
 
         # Añadir posición
         clasificacion_general.insert(0, 'Posición', range(1, len(clasificacion_general) + 1))
@@ -2532,13 +2570,14 @@ if not is_admin and 'tab_info' in locals():
         st.markdown("""
         ### 📋 Sistema de Puntuación
 
-        | Acierto | Puntos | Descripción |
-        |---------|--------|-------------|
-        | Resultado exacto (dif > 1) | **12** | Predices 3-0 y sale 3-0 |
-        | Resultado exacto (dif ≤ 1) | **10** | Predices 1-0 y sale 1-0 o 1-1 y sale 1-1 |
-        | Empate sin resultado exacto | **6** | Predices 1-1 y sale 2-2 |
-        | Ganador + diferencia | **6** | Predices 2-0 y sale 3-1 (ambos +2 local) |
-        | Solo ganador | **4** | Predices 1-0 y sale 3-1 (diferencias distintas) |
+        | Acierto | Puntos | Ejemplo |
+        |---------|--------|---------|
+        | Exacto rarísimo (dif ≥4 o ≥6 goles) | **30** | Predices 4-0 y sale 4-0 |
+        | Exacto raro | **20** | Predices 3-0 y sale 3-0 |
+        | Exacto moderado | **14** | Predices 2-0, 0-0 o 2-2 exacto |
+        | Exacto común | **10** | Predices 1-0, 1-1 o 2-1 exacto |
+        | Ganador + misma diferencia | **6** | Predices 2-0 y sale 3-1 |
+        | Solo ganador (1X2) | **4** | Predices 1-0 y sale 3-2 |
         | Fallo | **0** | Ganador incorrecto |
 
         ### ⭐ Jornadas Estrella
@@ -2581,7 +2620,7 @@ if not is_admin and 'tab_info' in locals():
 st.markdown("---")
 st.markdown(
     "<div style='text-align: center; color: #666;'>"
-    "⚽ Porra Mundial 2026 | Desarrollado para los mejores pronósticos"
+    "⚽ Porra Liga 2026-27 | Desarrollado para los mejores pronósticos"
     "</div>",
     unsafe_allow_html=True
 )
