@@ -2566,15 +2566,17 @@ if 'tab_info' in locals():
         st.markdown("""
         ### 📋 Sistema de Puntuación
 
-        | Acierto | Puntos | Ejemplo |
-        |---------|--------|---------|
-        | Exacto rarísimo (dif ≥4 o ≥6 goles) | **30** | Predices 4-0 y sale 4-0 |
-        | Exacto raro | **20** | Predices 3-0 y sale 3-0 |
-        | Exacto moderado | **14** | Predices 2-0, 0-0 o 2-2 exacto |
-        | Exacto común | **10** | Predices 1-0, 1-1 o 2-1 exacto |
-        | Ganador + misma diferencia | **6** | Predices 2-0 y sale 3-1 |
-        | Solo ganador (1X2) | **4** | Predices 1-0 y sale 3-2 |
-        | Fallo | **0** | Ganador incorrecto |
+        | Nivel | Criterio | Puntos |
+        |-------|----------|:------:|
+        | **Fallo** | Ganador incorrecto | **0** |
+        | **Solo 1X2** | Acertaste solo el signo (1, X o 2) | **4** |
+        | **Ganador + diferencia** | Ganador correcto y misma diferencia de goles (ej: predices 2-0 y sale 3-1) | **6** |
+        | **Exacto común** | Resultado exacto de alta frecuencia: 1-0, 0-1, 1-1, 2-1, 1-2 | **10** |
+        | **Exacto moderado** | Resultado exacto de frecuencia media: 2-0, 0-2, 0-0, 2-2, 3-1, 1-3 | **14** |
+        | **Exacto raro** | Resultado exacto de baja frecuencia: 3-0, 0-3, 3-2, 2-3, 4-1, 1-4... | **20** |
+        | **Exacto rarísimo** | Goleada (diferencia ≥4 goles) o marcador con ≥6 goles en total | **30** |
+
+        > En **jornadas estrella ⭐** un partido puede puntuar el doble (x2) o triple (x3).
 
         ### ⭐ Jornadas Estrella
 
