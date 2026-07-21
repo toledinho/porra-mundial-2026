@@ -1801,8 +1801,9 @@ if tab3 is not None:
             with col_local:
                 equipo_local = st.selectbox(
                     f"Equipo Local {i+1}",
-                    options=[""] + equipos_disponibles,
-                    format_func=lambda x: "Equipo local..." if x == "" else x,
+                    options=equipos_disponibles,
+                    index=None,
+                    placeholder="Equipo local...",
                     key=f"equipo_local_{i}",
                     label_visibility="collapsed"
                 )
@@ -1829,14 +1830,15 @@ if tab3 is not None:
             with col_visitante:
                 equipo_visitante = st.selectbox(
                     f"Equipo Visitante {i+1}",
-                    options=[""] + equipos_disponibles,
-                    format_func=lambda x: "Equipo visitante..." if x == "" else x,
+                    options=equipos_disponibles,
+                    index=None,
+                    placeholder="Equipo visitante...",
                     key=f"equipo_visit_{i}",
                     label_visibility="collapsed"
                 )
 
-            if equipo_local.strip() and equipo_visitante.strip():
-                nombre_partido = f"{equipo_local.strip()} vs {equipo_visitante.strip()}"
+            if equipo_local and equipo_visitante:
+                nombre_partido = f"{equipo_local} vs {equipo_visitante}"
             else:
                 nombre_partido = ""
 
@@ -2026,12 +2028,13 @@ if tab4 is not None:
         with col_search:
             usuario_seleccionado = st.selectbox(
                 "Busca tu nombre",
-                options=[""] + usuario_nombres,
-                format_func=lambda x: "Selecciona tu nombre..." if x == "" else x,
+                options=usuario_nombres,
+                index=None,
+                placeholder="Selecciona tu nombre...",
                 key="buscar_usuario"
             )
 
-        if usuario_seleccionado and usuario_seleccionado != "":
+        if usuario_seleccionado:
             st.markdown(f"### Pronósticos de: **{usuario_seleccionado}**")
 
             # Obtener partidos de la jornada
