@@ -1138,19 +1138,18 @@ with st.sidebar:
 
 # Tabs principales - mostrar según nivel de acceso
 if is_admin:
-    # Admin ve todo
-    tab1, tab2, tab3, tab4, tab5, tab6, tab8 = st.tabs([
+    tab1, tab2, tab3, tab4, tab5, tab6, tab8, tab_info = st.tabs([
         "📊 Inicio",
         "👥 Usuarios",
         "➕ Nueva Jornada",
         "📝 Ingresar Pronósticos",
         "⚽ Resultados",
         "🏆 Clasificaciones",
-        "📜 Histórico"
+        "📜 Histórico",
+        "ℹ️ Info"
     ])
     tab7 = None
 elif is_responsable:
-    # Responsable ve ingresar pronósticos, consultas e histórico
     tab1, tab4, tab6, tab8, tab_info = st.tabs([
         "📊 Inicio",
         "📝 Ingresar Pronósticos",
@@ -1158,17 +1157,14 @@ elif is_responsable:
         "📜 Histórico",
         "ℹ️ Info"
     ])
-    # Crear tabs dummy
     tab2 = tab3 = tab5 = tab7 = None
 else:
-    # Usuarios públicos ven histórico también
     tab1, tab6, tab8, tab_info = st.tabs([
         "📊 Inicio",
         "🏆 Clasificaciones",
         "📜 Histórico",
         "ℹ️ Info"
     ])
-    # Crear tabs dummy
     tab2 = tab3 = tab4 = tab5 = tab7 = None
 
 # TAB 1: INICIO
@@ -2563,7 +2559,7 @@ if tab8 is not None:
             st.info("No hay jornadas finalizadas aún para mostrar en el histórico.")
 
 # TAB INFO (Solo visible para usuarios no autenticados o responsables)
-if not is_admin and 'tab_info' in locals():
+if 'tab_info' in locals():
     with tab_info:
         st.header("ℹ️ Información de la Porra")
 
