@@ -8,32 +8,33 @@ from database import get_conn
 
 # Equipos LaLiga 2026-27
 EQUIPOS_PRIMERA = [
-    "Real Madrid", "Barcelona", "Atlético de Madrid", "Athletic Club", "Villarreal",
-    "Real Betis", "Sevilla", "Valencia", "Real Sociedad", "Celta de Vigo",
-    "Osasuna", "Mallorca", "Rayo Vallecano", "Getafe", "Girona",
-    "Espanyol", "Alavés", "Elche", "Racing de Santander", "Deportivo de La Coruña"
+    "Athletic Club de Bilbao", "Atlético de Madrid", "CA Osasuna", "Celta de Vigo",
+    "Deportivo Alavés", "Elche CF", "FC Barcelona", "Getafe CF",
+    "Levante UD", "Málaga CF", "Racing de Santander", "Rayo Vallecano",
+    "RC Deportivo de la Coruña", "RCD Espanyol", "Real Betis", "Real Madrid",
+    "Real Sociedad", "Sevilla FC", "Valencia CF", "Villarreal CF"
 ]
 
 EQUIPOS_SEGUNDA = [
-    "AD Ceuta", "Albacete", "Burgos", "Cádiz", "Castellón",
-    "Leganés", "Mirandés", "Córdoba", "Cultural Leonesa", "FC Andorra",
-    "Granada", "Málaga", "Racing Club Ferrol", "Real Sociedad B", "Deportivo",
-    "Sporting Gijón", "Valladolid", "Zaragoza", "Eibar", "Huesca",
-    "Almería", "Las Palmas"
+    "AD Ceuta FC", "Albacete BP", "Burgos CF", "Cádiz CF", "CD Castellón",
+    "CD Eldense", "CD Leganés", "CD Tenerife", "CE Sabadell", "Celta Fortuna",
+    "Córdoba CF", "FC Andorra", "Girona FC", "Granada CF", "R. Sociedad B",
+    "RCD Mallorca", "Real Oviedo", "Real Sporting de Gijón", "Real Valladolid CF",
+    "SD Eibar", "UD Almería", "UD Las Palmas"
 ]
 
 EQUIPOS_PREMIER = [
-    "Arsenal", "Aston Villa", "Bournemouth", "Brentford", "Brighton",
-    "Burnley", "Chelsea", "Crystal Palace", "Everton", "Fulham",
-    "Leeds United", "Liverpool", "Manchester City", "Manchester United", "Newcastle United",
-    "Nottingham Forest", "Sunderland", "Tottenham", "West Ham", "Wolverhampton"
+    "Arsenal", "Aston Villa", "Bournemouth", "Brentford", "Brighton & Hove Albion",
+    "Chelsea", "Coventry City", "Crystal Palace", "Everton", "Fulham",
+    "Hull City", "Ipswich Town", "Leeds United", "Liverpool", "Manchester City",
+    "Manchester United", "Newcastle United", "Nottingham Forest", "Sunderland", "Tottenham Hotspur"
 ]
 
 EQUIPOS_SERIE_A = [
     "Atalanta", "Bologna", "Cagliari", "Como", "Fiorentina",
-    "Genoa", "Inter", "Juventus", "Lazio", "Lecce",
-    "Milan", "Napoli", "Parma", "Pisa", "Roma",
-    "Sassuolo", "Torino", "Udinese", "Verona", "Cremonese"
+    "Frosinone", "Genoa", "Inter Milan", "Juventus", "Lazio",
+    "Lecce", "AC Milan", "Monza", "Napoli", "Parma",
+    "Roma", "Sassuolo", "Torino", "Udinese", "Venezia"
 ]
 
 EQUIPOS_POR_LIGA = {
