@@ -1136,6 +1136,14 @@ with st.sidebar:
     else:
         st.warning("💾 Base de datos: **SQLite Local** (se pierde al reiniciar)")
 
+# Ir a inicio si se acaban de guardar resultados
+if st.session_state.pop('ir_a_inicio', False):
+    st.markdown("""
+    <script>
+        window.parent.document.querySelectorAll('button[data-baseweb="tab"]')[0].click();
+    </script>
+    """, unsafe_allow_html=True)
+
 # Tabs principales - mostrar según nivel de acceso
 if is_admin:
     tab1, tab2, tab3, tab4, tab5, tab6, tab8, tab_info = st.tabs([
@@ -2312,10 +2320,7 @@ if tab5 is not None:
                     success = actualizar_resultados_jornada(jornada_seleccionada, resultados_nuevos)
                     if success:
                         st.success("✅ Resultados actualizados y puntos recalculados correctamente")
-                        for partido_id in resultados_nuevos:
-                            for k in [f"gol_local_update_{partido_id}", f"gol_visit_update_{partido_id}"]:
-                                if k in st.session_state:
-                                    del st.session_state[k]
+                        st.session_state['ir_a_inicio'] = True
                         st.rerun()
                     else:
                         st.error("❌ Error al actualizar resultados")
