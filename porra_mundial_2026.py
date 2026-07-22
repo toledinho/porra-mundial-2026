@@ -2062,7 +2062,8 @@ if tab4 is not None:
                 pron_dict = dict(zip(pronosticos_existentes['partido_id'], pronosticos_existentes['prediccion']))
 
             # Formulario para ingresar pronósticos
-            with st.form(key=f"form_pronosticos_{usuario_seleccionado}"):
+            pron_form_version = st.session_state.get(f'pron_form_version_{usuario_seleccionado}', 0)
+            with st.form(key=f"form_pronosticos_{usuario_seleccionado}_{pron_form_version}"):
                 pronosticos = {}
 
                 for _, partido in partidos_df.iterrows():
@@ -2162,6 +2163,10 @@ if tab4 is not None:
 
                         st.success(f"✅ Pronósticos de **{usuario_seleccionado}** guardados correctamente!")
                         st.balloons()
+                        st.session_state[f'pron_form_version_{usuario_seleccionado}'] = pron_form_version + 1
+                        if 'buscar_usuario' in st.session_state:
+                            del st.session_state['buscar_usuario']
+                        st.rerun()
 
             # Mostrar si ya tiene pronósticos guardados
             if len(pron_dict) > 0:
