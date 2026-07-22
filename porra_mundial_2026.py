@@ -1393,21 +1393,22 @@ if tab2 is not None:
                 usuarios_activos = usuarios_df['nombre'].tolist()
 
             if usuarios_activos:
-                usuario_editar = st.selectbox("Selecciona usuario a editar", usuarios_activos, key="select_editar")
-                nuevo_nombre_edit = st.text_input("Nuevo nombre", value=usuario_editar, key="input_nuevo_nombre")
+                usuario_editar = st.selectbox("Selecciona usuario a editar", usuarios_activos, index=None, placeholder="Busca un usuario...", key="select_editar")
+                if usuario_editar:
+                    nuevo_nombre_edit = st.text_input("Nuevo nombre", value=usuario_editar, key="input_nuevo_nombre")
 
-                if st.button("💾 Guardar Cambio", type="primary"):
-                    if nuevo_nombre_edit.strip() and nuevo_nombre_edit.strip() != usuario_editar:
-                        success, mensaje = actualizar_nombre_usuario(usuario_editar, nuevo_nombre_edit.strip())
-                        if success:
-                            st.success(mensaje)
-                            st.rerun()
+                    if st.button("💾 Guardar Cambio", type="primary"):
+                        if nuevo_nombre_edit.strip() and nuevo_nombre_edit.strip() != usuario_editar:
+                            success, mensaje = actualizar_nombre_usuario(usuario_editar, nuevo_nombre_edit.strip())
+                            if success:
+                                st.success(mensaje)
+                                st.rerun()
+                            else:
+                                st.error(mensaje)
+                        elif nuevo_nombre_edit.strip() == usuario_editar:
+                            st.info("El nombre no ha cambiado")
                         else:
-                            st.error(mensaje)
-                    elif nuevo_nombre_edit.strip() == usuario_editar:
-                        st.info("El nombre no ha cambiado")
-                    else:
-                        st.error("El nuevo nombre no puede estar vacío")
+                            st.error("El nuevo nombre no puede estar vacío")
             else:
                 st.info("No hay usuarios activos para editar")
 
@@ -1416,9 +1417,9 @@ if tab2 is not None:
             st.subheader("❌ Desactivar Usuario")
 
             if usuarios_activos:
-                usuario_eliminar = st.selectbox("Selecciona usuario a desactivar", usuarios_activos, key="select_eliminar")
+                usuario_eliminar = st.selectbox("Selecciona usuario a desactivar", usuarios_activos, index=None, placeholder="Busca un usuario...", key="select_eliminar")
 
-                if st.button("🗑️ Desactivar Usuario", type="secondary"):
+                if st.button("🗑️ Desactivar Usuario", type="secondary", disabled=not usuario_eliminar):
                     eliminar_usuario(usuario_eliminar)
                     st.success(f"Usuario '{usuario_eliminar}' desactivado")
                     st.rerun()
@@ -1430,9 +1431,9 @@ if tab2 is not None:
             if usuarios_inactivos:
                 st.markdown("---")
                 st.subheader("✅ Reactivar Usuario")
-                usuario_reactivar = st.selectbox("Selecciona usuario a reactivar", usuarios_inactivos)
+                usuario_reactivar = st.selectbox("Selecciona usuario a reactivar", usuarios_inactivos, index=None, placeholder="Busca un usuario...")
 
-                if st.button("♻️ Reactivar Usuario", type="secondary"):
+                if st.button("♻️ Reactivar Usuario", type="secondary", disabled=not usuario_reactivar):
                     reactivar_usuario(usuario_reactivar)
                     st.success(f"Usuario '{usuario_reactivar}' reactivado")
                     st.rerun()
@@ -1511,6 +1512,8 @@ if tab2 is not None:
                 usuario_eliminar = st.selectbox(
                     "Selecciona usuario a eliminar",
                     options=usuarios_activos['nombre'].tolist(),
+                    index=None,
+                    placeholder="Busca un usuario...",
                     key="usuario_eliminar_select"
                 )
 
@@ -1811,7 +1814,7 @@ if tab3 is not None:
             with col_gol_local:
                 goles_local = st.text_input(
                     f"Goles Local {i+1}",
-                    placeholder="0",
+                    placeholder="",
                     key=f"goles_local_{i}",
                     label_visibility="collapsed"
                 )
@@ -1822,7 +1825,7 @@ if tab3 is not None:
             with col_gol_visit:
                 goles_visitante = st.text_input(
                     f"Goles Visitante {i+1}",
-                    placeholder="0",
+                    placeholder="",
                     key=f"goles_visit_{i}",
                     label_visibility="collapsed"
                 )
@@ -2266,7 +2269,7 @@ if tab5 is not None:
                         gol_local = st.text_input(
                             f"Goles Local {partido['id']}",
                             value="",
-                            placeholder=goles[0].strip() if len(goles) > 0 and goles[0].strip() else "0",
+                            placeholder=goles[0].strip() if len(goles) > 0 and goles[0].strip() else "",
                             key=f"gol_local_update_{partido['id']}",
                             label_visibility="collapsed"
                         )
@@ -2278,7 +2281,7 @@ if tab5 is not None:
                         gol_visit = st.text_input(
                             f"Goles Visitante {partido['id']}",
                             value="",
-                            placeholder=goles[1].strip() if len(goles) > 1 and goles[1].strip() else "0",
+                            placeholder=goles[1].strip() if len(goles) > 1 and goles[1].strip() else "",
                             key=f"gol_visit_update_{partido['id']}",
                             label_visibility="collapsed"
                         )
