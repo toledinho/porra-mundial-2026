@@ -2312,6 +2312,10 @@ if tab5 is not None:
                     success = actualizar_resultados_jornada(jornada_seleccionada, resultados_nuevos)
                     if success:
                         st.success("✅ Resultados actualizados y puntos recalculados correctamente")
+                        for partido_id in resultados_nuevos:
+                            for k in [f"gol_local_update_{partido_id}", f"gol_visit_update_{partido_id}"]:
+                                if k in st.session_state:
+                                    del st.session_state[k]
                         st.rerun()
                     else:
                         st.error("❌ Error al actualizar resultados")
