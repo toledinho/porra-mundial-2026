@@ -58,8 +58,8 @@ def get_base64_image(image_path):
         return base64.b64encode(img_file.read()).decode()
 
 # Resultados por frecuencia histórica en liga española
-_RESULTADOS_COMUNES = frozenset([(1, 0), (0, 1), (1, 1), (2, 1), (1, 2)])
-_RESULTADOS_MODERADOS = frozenset([(2, 0), (0, 2), (0, 0), (2, 2), (3, 1), (1, 3)])
+_RESULTADOS_COMUNES = frozenset([(1, 0), (0, 1), (1, 1), (2, 1), (1, 2), (0, 0)])
+_RESULTADOS_MODERADOS = frozenset([(2, 0), (0, 2), (2, 2), (3, 1), (1, 3)])
 
 # Sistema de puntuación Liga 2026-27
 def calcular_puntos(prediccion, resultado_real):
@@ -2577,8 +2577,8 @@ if 'tab_info' in locals():
         | **Fallo** | Ganador incorrecto | **0** |
         | **Solo 1X2** | Acertaste solo el signo (1, X o 2) | **4** |
         | **Ganador + diferencia** | Ganador correcto y misma diferencia de goles (ej: predices 2-0 y sale 3-1) | **6** |
-        | **Exacto común** | Resultado exacto de alta frecuencia: 1-0, 0-1, 1-1, 2-1, 1-2 | **10** |
-        | **Exacto moderado** | Resultado exacto de frecuencia media: 2-0, 0-2, 0-0, 2-2, 3-1, 1-3 | **14** |
+        | **Exacto común** | Resultado exacto de alta frecuencia: 1-0, 0-1, 1-1, 2-1, 1-2, 0-0 | **10** |
+        | **Exacto moderado** | Resultado exacto de frecuencia media: 2-0, 0-2, 2-2, 3-1, 1-3 | **14** |
         | **Exacto raro** | Resultado exacto de baja frecuencia: 3-0, 0-3, 3-2, 2-3, 4-1, 1-4... | **20** |
         | **Exacto rarísimo** | Goleada (diferencia ≥4 goles) o marcador con ≥6 goles en total | **30** |
 
