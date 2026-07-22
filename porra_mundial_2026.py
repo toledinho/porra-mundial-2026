@@ -2022,6 +2022,11 @@ if tab4 is not None:
 
         st.markdown("---")
 
+        # Mensaje de éxito tras guardar pronósticos
+        if 'pron_exito' in st.session_state:
+            st.success(st.session_state.pop('pron_exito'))
+            st.balloons()
+
         # Buscar usuario
         usuarios_activos = get_usuarios()
         usuario_nombres = usuarios_activos['nombre'].tolist()
@@ -2160,9 +2165,7 @@ if tab4 is not None:
                         conn.commit()
                         conn.close()
                         st.cache_data.clear()
-
-                        st.success(f"✅ Pronósticos de **{usuario_seleccionado}** guardados correctamente!")
-                        st.balloons()
+                        st.session_state['pron_exito'] = f"✅ Pronósticos de **{usuario_seleccionado}** guardados correctamente!"
                         st.session_state[f'pron_form_version_{usuario_seleccionado}'] = pron_form_version + 1
                         if 'buscar_usuario' in st.session_state:
                             del st.session_state['buscar_usuario']
