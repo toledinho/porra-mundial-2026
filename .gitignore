@@ -42,6 +42,7 @@ wheels/
 # EXCEPCIONES: Archivos de ejemplo que SÍ queremos en el repo
 !ejemplo_usuarios.csv
 !ejemplo_jornada.csv
+!logo_porraneta_header.png
 
 # Archivos de sistema
 .DS_Store

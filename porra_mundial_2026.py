@@ -941,39 +941,118 @@ def exportar_pronosticos_jornada(jornada_id):
 init_db()
 
 # CSS personalizado
-st.markdown("""
+import os as _os
+_header_img_path = _os.path.join(_os.path.dirname(__file__), "logo_porraneta_header.png")
+_header_b64 = get_base64_image(_header_img_path) if _os.path.exists(_header_img_path) else ""
+
+st.markdown(f"""
 <style>
-    .main-header {
-        font-size: 3rem;
-        font-weight: bold;
-        text-align: center;
-        color: #1f77b4;
-        margin-bottom: 2rem;
-    }
-    .stat-card {
-        background-color: #f0f2f6;
+    /* ── Fondo general ── */
+    .stApp {{
+        background-color: #1a2e1a;
+        background-image:
+            radial-gradient(circle at 20% 20%, rgba(255,255,255,0.03) 0%, transparent 50%),
+            radial-gradient(circle at 80% 80%, rgba(255,255,255,0.03) 0%, transparent 50%);
+    }}
+
+    /* ── Header con imagen ── */
+    .porraneta-header {{
+        width: 100%;
+        display: block;
+        border-radius: 12px;
+        margin-bottom: 1.5rem;
+        box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+    }}
+
+    /* ── Texto general más legible sobre fondo oscuro ── */
+    .stMarkdown, .stDataFrame, label, .stSelectbox, p, li, td, th {{
+        color: #f0f0f0 !important;
+    }}
+
+    /* ── Tarjetas de partido: texto siempre oscuro ── */
+    .partido-card, .partido-card * {{
+        color: #1a1a1a !important;
+    }}
+
+    h1, h2, h3 {{
+        color: #f4c542 !important;
+    }}
+
+    /* ── Cards de stats ── */
+    .stat-card {{
+        background: linear-gradient(135deg, #1e4d1e 0%, #2d6a2d 100%);
+        border: 1px solid #4caf50;
         padding: 1.5rem;
-        border-radius: 10px;
+        border-radius: 12px;
         text-align: center;
-    }
-    .stat-number {
+        box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+    }}
+    .stat-number {{
         font-size: 2rem;
         font-weight: bold;
-        color: #1f77b4;
-    }
-    .stat-label {
+        color: #f4c542 !important;
+    }}
+    .stat-label {{
         font-size: 1rem;
-        color: #666;
-    }
-    .header-image {
-        height: 120px;
-        width: 100%;
-        object-fit: cover;
-        margin-bottom: 1rem;
-        display: block;
-    }
+        color: #a5d6a7 !important;
+    }}
+
+    /* ── Tabs ── */
+    .stTabs [data-baseweb="tab-list"] {{
+        background-color: #1e3a1e;
+        border-radius: 8px;
+        padding: 4px;
+    }}
+    .stTabs [data-baseweb="tab"] {{
+        color: #a5d6a7 !important;
+        font-weight: 600;
+    }}
+    .stTabs [aria-selected="true"] {{
+        background-color: #2d6a2d !important;
+        color: #f4c542 !important;
+        border-radius: 6px;
+    }}
+
+    /* ── Sidebar ── */
+    [data-testid="stSidebar"] {{
+        background-color: #152615 !important;
+    }}
+
+    /* ── Dataframes ── */
+    [data-testid="stDataFrame"] {{
+        border-radius: 8px;
+        overflow: hidden;
+    }}
+
+    /* ── Botones ── */
+    .stButton > button {{
+        background: linear-gradient(135deg, #1e4d1e, #2d6a2d);
+        color: #f4c542;
+        border: 1px solid #4caf50;
+        font-weight: bold;
+    }}
+    .stButton > button:hover {{
+        background: linear-gradient(135deg, #2d6a2d, #3d8a3d);
+        border-color: #f4c542;
+    }}
+
+    /* ── Ocultar header Streamlit ── */
+    #MainMenu, footer, header {{visibility: hidden;}}
+
+    /* ── Contenedor principal más ancho ── */
+    .block-container {{
+        padding-top: 1rem;
+        max-width: 1200px;
+    }}
 </style>
 """, unsafe_allow_html=True)
+
+# Header con imagen
+if _header_b64:
+    st.markdown(
+        f'<img src="data:image/png;base64,{_header_b64}" class="porraneta-header" />',
+        unsafe_allow_html=True
+    )
 
 # Funciones auxiliares para manejo de sesión con localStorage
 def get_session_from_browser():
@@ -1127,7 +1206,7 @@ is_responsable = (user_level == "responsable")
 is_authenticated = (is_admin or is_responsable)
 
 # Header
-st.markdown('<div class="main-header">⚽ Porra Liga 2026-27 ⚽</div>', unsafe_allow_html=True)
+# Header imagen — ya se renderiza arriba en el bloque CSS
 
 # Indicador de base de datos en sidebar
 with st.sidebar:
@@ -1244,24 +1323,24 @@ with tab1:
 
                         with col:
                             st.markdown(f"""
-                            <div style='background-color: {bg_color};
+                            <div class='partido-card' style='background-color: {bg_color};
                                         border-left: 5px solid {border_color};
                                         padding: 1rem;
                                         border-radius: 10px;
                                         margin-bottom: 1rem;
                                         box-shadow: 0 2px 4px rgba(0,0,0,0.05);'>
                                 <div style='display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;'>
-                                    <span style='font-weight: bold; color: #333; font-size: 0.85rem;'>
+                                    <span style='font-weight: bold; color: #1a1a1a !important; font-size: 0.85rem;'>
                                         PARTIDO {partido['numero_partido']} {doble_badge}
                                     </span>
                                     <span style='font-size: 1.1rem;'>{estado_icon}</span>
                                 </div>
                                 <div style='display: grid; grid-template-columns: 2fr 1fr 0.5fr 1fr 2fr; align-items: center; gap: 0.5rem;'>
-                                    <div style='text-align: right; font-weight: 500; color: #333;'>{equipo_local}</div>
+                                    <div style='text-align: right; font-weight: 500; color: #1a1a1a !important;'>{equipo_local}</div>
                                     <div style='text-align: center; font-size: 1.5rem; font-weight: bold; color: {border_color};'>{goles_local}</div>
-                                    <div style='text-align: center; font-weight: bold; color: #666;'>-</div>
+                                    <div style='text-align: center; font-weight: bold; color: #444 !important;'>-</div>
                                     <div style='text-align: center; font-size: 1.5rem; font-weight: bold; color: {border_color};'>{goles_visitante}</div>
-                                    <div style='text-align: left; font-weight: 500; color: #333;'>{equipo_visitante}</div>
+                                    <div style='text-align: left; font-weight: 500; color: #1a1a1a !important;'>{equipo_visitante}</div>
                                 </div>
                             </div>
                             """, unsafe_allow_html=True)
