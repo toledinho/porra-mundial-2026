@@ -1316,29 +1316,49 @@ with tab1:
 
         st.markdown("---")
 
-        # Clasificación General Completa
-        st.subheader("🏆 Clasificación General de la Liga 2026-27")
+    # Clasificación General — siempre visible
+    st.subheader("🏆 Clasificación General de la Liga 2026-27")
 
-        # Obtener clasificación con o sin deuda según el rol
-        clasificacion_completa = get_clasificacion_general(incluir_deuda=is_admin)
+    # Calcular bote real: suma de participantes distintos que jugaron cada jornada
+    conn_bote = get_conn()
+    num_jornadas_inicio = pd.read_sql_query("SELECT COUNT(*) as total FROM jornadas", conn_bote)['total'].iloc[0]
+    bote_df_inicio = pd.read_sql_query("""
+        SELECT p.jornada_id, COUNT(DISTINCT pr.participante) as n
+        FROM pronosticos pr
+        JOIN partidos p ON pr.partido_id = p.id
+        GROUP BY p.jornada_id
+    """, conn_bote)
+    conn_bote.close()
+    bote_total_inicio = int(bote_df_inicio['n'].sum()) if len(bote_df_inicio) > 0 else 0
 
-        if len(clasificacion_completa) > 0:
-            # Añadir posición
-            clasificacion_display = clasificacion_completa.copy()
-            clasificacion_display.insert(0, 'Posición', range(1, len(clasificacion_display) + 1))
+    PORCENTAJES_INICIO = [0.33, 0.18, 0.14, 0.11, 0.09, 0.07, 0.04]
 
-            # Formatear columnas según el rol
-            if is_admin:
-                clasificacion_display.columns = ['Posición', 'Participante', 'Puntos', 'Exactos',
-                                                 'Ganador+Dif', 'Solo Ganador', 'Jornadas Jugadas', 'Mejor Jornada',
-                                                 'Jornadas Sin Participar', 'Debe (€)']
+    clasificacion_completa = get_clasificacion_general(incluir_deuda=is_admin)
+
+    if len(clasificacion_completa) > 0:
+        clasificacion_display = clasificacion_completa.copy()
+        clasificacion_display.insert(0, 'Posición', range(1, len(clasificacion_display) + 1))
+
+        if is_admin:
+            clasificacion_display.columns = ['Posición', 'Participante', 'Puntos', 'Exactos',
+                                             'Ganador+Dif', 'Solo Ganador', 'Jornadas Jugadas', 'Mejor Jornada',
+                                             'Jornadas Sin Participar', 'Debe (€)']
+        else:
+            clasificacion_display.columns = ['Posición', 'Participante', 'Puntos', 'Exactos',
+                                             'Ganador+Dif', 'Solo Ganador', 'Jornadas', 'Mejor Jornada']
+
+        premios_inicio = []
+        for i in range(len(clasificacion_display)):
+            if i < len(PORCENTAJES_INICIO):
+                premios_inicio.append(f"{round(bote_total_inicio * PORCENTAJES_INICIO[i]):.0f} €")
             else:
-                clasificacion_display.columns = ['Posición', 'Participante', 'Puntos', 'Exactos',
-                                                 'Ganador+Dif', 'Solo Ganador', 'Jornadas', 'Mejor Jornada']
+                premios_inicio.append("")
+        clasificacion_display['Premio est. 🏆'] = premios_inicio
 
-            st.dataframe(clasificacion_display, use_container_width=True, hide_index=True)
+        st.caption(f"💰 Bote acumulado: **{bote_total_inicio} €** ({num_jornadas_inicio} jornadas · 1€ por participante por jornada)")
+        st.dataframe(clasificacion_display, use_container_width=True, hide_index=True)
     else:
-        st.info("👋 ¡Bienvenido! No hay jornadas registradas aún. Ve a la pestaña 'Nueva Jornada' para comenzar.")
+        st.info("👋 La temporada aún no ha comenzado. ¡Aquí verás la clasificación en cuanto se juegue la primera jornada!")
 
 # TAB 2: USUARIOS (Solo Admin)
 if tab2 is not None:
@@ -2396,6 +2416,21 @@ with tab6:
         # Añadir posición
         clasificacion_general.insert(0, 'Posición', range(1, len(clasificacion_general) + 1))
 
+        # Calcular bote real: suma de participantes distintos que jugaron cada jornada
+        conn_bote = get_conn()
+        num_jornadas = pd.read_sql_query("SELECT COUNT(*) as total FROM jornadas", conn_bote)['total'].iloc[0]
+        bote_df = pd.read_sql_query("""
+            SELECT p.jornada_id, COUNT(DISTINCT pr.participante) as n
+            FROM pronosticos pr
+            JOIN partidos p ON pr.partido_id = p.id
+            GROUP BY p.jornada_id
+        """, conn_bote)
+        conn_bote.close()
+        bote_total = int(bote_df['n'].sum()) if len(bote_df) > 0 else 0
+
+        # Porcentajes para los 7 primeros
+        PORCENTAJES = [0.33, 0.18, 0.14, 0.11, 0.09, 0.07, 0.04]
+
         # Formatear columnas según el rol
         clasificacion_display = clasificacion_general.copy()
 
@@ -2410,6 +2445,17 @@ with tab6:
             clasificacion_display.columns = ['Posición', 'Participante', 'Puntos', 'Exactos',
                                              'Ganador+Dif', 'Solo Ganador', 'Jornadas', 'Mejor Jornada']
 
+        # Añadir columna de premio estimado para los 7 primeros
+        premios = []
+        for i, pos in enumerate(clasificacion_display['Posición']):
+            if i < len(PORCENTAJES):
+                importe = round(bote_total * PORCENTAJES[i], 2)
+                premios.append(f"{importe:.0f} €")
+            else:
+                premios.append("")
+        clasificacion_display['Premio est. 🏆'] = premios
+
+        st.caption(f"💰 Bote acumulado: **{bote_total} €** ({num_jornadas} jornadas jugadas · 1€ por participante por jornada)")
         st.dataframe(clasificacion_display, use_container_width=True, hide_index=True)
 
         # Botón de descarga
@@ -2617,6 +2663,29 @@ if 'tab_info' in locals():
         ### 📜 Histórico
 
         Revisa todas las jornadas pasadas con sus clasificaciones y resultados.
+
+        ---
+
+        ### 💰 Distribución de Premios
+
+        Cada participante paga **1€ por jornada**, que va íntegramente al bote final de la temporada.
+
+        > En las **jornadas dobles** el euro extra se destina a un **premio de bloque o mensual** que se anunciará oportunamente.
+
+        El bote acumulado al final de la temporada se reparte así:
+
+        | Premio | % del bote |
+        |--------|:----------:|
+        | 🥇 1.º clasificado | **33%** |
+        | 🥈 2.º clasificado | **18%** |
+        | 🥉 3.º clasificado | **14%** |
+        | 4.º clasificado | **11%** |
+        | 5.º clasificado | **9%** |
+        | 6.º clasificado | **7%** |
+        | 7.º clasificado | **4%** |
+        | 🏅 Mejor jornada (mayor puntuación en una jornada) | **4%** |
+
+        > Los importes exactos dependerán del número de jornadas jugadas al cierre de la temporada.
 
         ---
 
