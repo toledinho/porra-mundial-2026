@@ -1353,7 +1353,7 @@ with tab1:
                 premios_inicio.append(f"{round(bote_total_inicio * PORCENTAJES_INICIO[i]):.0f} €")
             else:
                 premios_inicio.append("")
-        clasificacion_display['Premio est. 🏆'] = premios_inicio
+        clasificacion_display['Premio 🏆'] = premios_inicio
 
         st.caption(f"💰 Bote acumulado: **{bote_total_inicio} €** ({num_jornadas_inicio} jornadas · 1€ por participante por jornada)")
         st.dataframe(clasificacion_display, use_container_width=True, hide_index=True)
@@ -2453,7 +2453,7 @@ with tab6:
                 premios.append(f"{importe:.0f} €")
             else:
                 premios.append("")
-        clasificacion_display['Premio est. 🏆'] = premios
+        clasificacion_display['Premio 🏆'] = premios
 
         st.caption(f"💰 Bote acumulado: **{bote_total} €** ({num_jornadas} jornadas jugadas · 1€ por participante por jornada)")
         st.dataframe(clasificacion_display, use_container_width=True, hide_index=True)
