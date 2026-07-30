@@ -2627,6 +2627,22 @@ if 'tab_info' in locals():
         st.header("ℹ️ Información de la Porra")
 
         st.markdown("""
+        ### 📜 Normas Generales
+
+        | # | Norma |
+        |:-:|-------|
+        | **1** | Las apuestas deben entregarse **antes del inicio del primer partido**. |
+        | **2** | No valdrá poner el resultado y no pagar. Si eso ocurre, **no puntuará esa jornada**. |
+        | **3** | Si un partido se suspende o aplaza, se tendrá en cuenta el resultado oficial **cuando se dispute**. |
+        | **4** | En caso de empate en premios finales o mensuales, **se repartirá a partes iguales**. |
+        | **5** | Los pronósticos son **personales e intransferibles**. |
+        | **6** | La organización se reserva el derecho de **modificar algún partido** en caso de cambios de calendario. |
+        | **7** | En la clasificación general, habrá premios para los **7 primeros clasificados**. |
+        | **8** | El premio del participante del mes será la **mitad del bote de la jornada ESTRELLA ⭐**. |
+        | **9** | Habrá al final de liga un **premio especial a la mayor puntuación en una jornada**. |
+
+        ---
+
         ### 📋 Sistema de Puntuación
 
         | Nivel | Criterio | Puntos |
