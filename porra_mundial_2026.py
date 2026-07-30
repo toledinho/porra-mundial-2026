@@ -1108,9 +1108,20 @@ st.markdown(f"""
         background-color: #2d6a2d !important;
         color: #f4c542 !important;
     }}
-    /* Placeholder */
-    .stSelectbox input::placeholder {{
+    /* Placeholders — texto por defecto visible */
+    input::placeholder, textarea::placeholder {{
         color: #a5d6a7 !important;
+        opacity: 1 !important;
+    }}
+    /* Valor seleccionado en selectbox con index=None (placeholder) */
+    .stSelectbox [data-baseweb="select"] span,
+    .stMultiSelect [data-baseweb="select"] span {{
+        color: #f0f0f0 !important;
+    }}
+    /* Texto placeholder del selectbox cuando no hay selección */
+    .stSelectbox [data-baseweb="select"] [data-testid="stMarkdownContainer"],
+    [data-baseweb="select"] > div > div > div {{
+        color: #f0f0f0 !important;
     }}
     /* Date input */
     .stDateInput input {{
@@ -1248,14 +1259,17 @@ def check_password():
         if password == admin_pwd:
             st.session_state["user_level"] = "admin"
             st.session_state["password_correct"] = True
+            st.session_state["login_failed"] = False
             save_session_to_browser("admin")
         elif password == responsable_pwd:
             st.session_state["user_level"] = "responsable"
             st.session_state["password_correct"] = True
+            st.session_state["login_failed"] = False
             save_session_to_browser("responsable")
         else:
             st.session_state["password_correct"] = False
             st.session_state["user_level"] = None
+            st.session_state["login_failed"] = True
 
         # Limpiar password del estado
         if "password" in st.session_state:
@@ -1313,7 +1327,7 @@ def check_password():
             key="password",
             placeholder="Ingresa tu contraseña"
         )
-        if "password_correct" in st.session_state and not st.session_state["password_correct"]:
+        if st.session_state.get("login_failed", False):
             st.error("❌ Contraseña incorrecta")
 
     return None
@@ -2292,7 +2306,7 @@ if tab4 is not None:
 
                 for _, partido in partidos_df.iterrows():
                     doble_text = " 🌟 (Triple)" if partido['es_triple'] else (" ⭐ (Doble)" if partido['es_doble'] else "")
-                    st.markdown(f"**Partido {partido['numero_partido']}**{doble_text}")
+                    st.markdown(f"<span style='color:#a5d6a7; font-size:0.85rem;'>Partido {partido['numero_partido']}{doble_text}</span>", unsafe_allow_html=True)
 
                     # Extraer equipos del nombre
                     nombre_partido = partido['nombre']
@@ -2305,7 +2319,7 @@ if tab4 is not None:
                     col_local, col_gol_local, col_vs, col_gol_visit, col_visitante = st.columns([3, 1, 0.5, 1, 3])
 
                     with col_local:
-                        st.markdown(f"<div style='padding-top: 8px;'>{equipos[0] if len(equipos) > 0 else ''}</div>", unsafe_allow_html=True)
+                        st.markdown(f"<div style='padding-top: 8px; color:#f4c542; font-weight:bold;'>{equipos[0] if len(equipos) > 0 else ''}</div>", unsafe_allow_html=True)
 
                     with col_gol_local:
                         gol_local_pred = st.text_input(
@@ -2317,7 +2331,7 @@ if tab4 is not None:
                         )
 
                     with col_vs:
-                        st.markdown("<div style='text-align: center; padding-top: 8px;'>-</div>", unsafe_allow_html=True)
+                        st.markdown("<div style='text-align: center; padding-top: 8px; color:#a5d6a7;'>-</div>", unsafe_allow_html=True)
 
                     with col_gol_visit:
                         gol_visit_pred = st.text_input(
@@ -2329,7 +2343,7 @@ if tab4 is not None:
                         )
 
                     with col_visitante:
-                        st.markdown(f"<div style='padding-top: 8px;'>{equipos[1] if len(equipos) > 1 else ''}</div>", unsafe_allow_html=True)
+                        st.markdown(f"<div style='padding-top: 8px; color:#f4c542; font-weight:bold;'>{equipos[1] if len(equipos) > 1 else ''}</div>", unsafe_allow_html=True)
 
                     # Construir predicción final
                     if gol_local_pred.strip() and gol_visit_pred.strip():
@@ -2478,7 +2492,7 @@ if tab5 is not None:
                 resultados_nuevos = {}
                 for idx, partido in partidos_df.iterrows():
                     badge = " 🌟 (Triple)" if partido['es_triple'] else (" ⭐ (Doble)" if partido['es_doble'] else "")
-                    st.markdown(f"**Partido {partido['numero_partido']}**{badge}")
+                    st.markdown(f"<span style='color:#a5d6a7; font-size:0.85rem;'>Partido {partido['numero_partido']}{badge}</span>", unsafe_allow_html=True)
 
                     # Extraer equipos del nombre (formato: "Equipo1 vs Equipo2")
                     nombre_partido = partido['nombre']
@@ -2491,7 +2505,7 @@ if tab5 is not None:
                     col_local, col_gol_local, col_vs, col_gol_visit, col_visitante = st.columns([3, 1, 0.5, 1, 3])
 
                     with col_local:
-                        st.markdown(f"<div style='padding-top: 8px;'>{equipos[0] if len(equipos) > 0 else ''}</div>", unsafe_allow_html=True)
+                        st.markdown(f"<div style='padding-top: 8px; color:#f4c542; font-weight:bold;'>{equipos[0] if len(equipos) > 0 else ''}</div>", unsafe_allow_html=True)
 
                     with col_gol_local:
                         gol_local = st.text_input(
@@ -2503,7 +2517,7 @@ if tab5 is not None:
                         )
 
                     with col_vs:
-                        st.markdown("<div style='text-align: center; padding-top: 8px;'>-</div>", unsafe_allow_html=True)
+                        st.markdown("<div style='text-align: center; padding-top: 8px; color:#a5d6a7;'>-</div>", unsafe_allow_html=True)
 
                     with col_gol_visit:
                         gol_visit = st.text_input(
@@ -2515,7 +2529,7 @@ if tab5 is not None:
                         )
 
                     with col_visitante:
-                        st.markdown(f"<div style='padding-top: 8px;'>{equipos[1] if len(equipos) > 1 else ''}</div>", unsafe_allow_html=True)
+                        st.markdown(f"<div style='padding-top: 8px; color:#f4c542; font-weight:bold;'>{equipos[1] if len(equipos) > 1 else ''}</div>", unsafe_allow_html=True)
 
                     # Construir resultado final
                     if gol_local.strip() and gol_visit.strip():
