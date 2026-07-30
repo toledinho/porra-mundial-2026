@@ -49,7 +49,7 @@ st.set_page_config(
     page_title="Porra Liga 2026-27",
     page_icon="⚽",
     layout="wide",
-    initial_sidebar_state="collapsed"
+    initial_sidebar_state="expanded"
 )
 
 # Función para convertir imagen a base64
@@ -940,6 +940,15 @@ def exportar_pronosticos_jornada(jornada_id):
 # Inicializar base de datos
 init_db()
 
+def df_to_html_table(df):
+    """Renderiza un DataFrame como tabla HTML con el estilo de la app."""
+    headers = "".join(f"<th>{col}</th>" for col in df.columns)
+    rows = ""
+    for _, row in df.iterrows():
+        cells = "".join(f"<td>{val}</td>" for val in row)
+        rows += f"<tr>{cells}</tr>"
+    return f"<table class='app-table'><thead><tr>{headers}</tr></thead><tbody>{rows}</tbody></table>"
+
 # CSS personalizado
 import os as _os
 _header_img_path = _os.path.join(_os.path.dirname(__file__), "logo_porraneta_header.png")
@@ -1024,6 +1033,92 @@ st.markdown(f"""
         overflow: hidden;
     }}
 
+    /* ── Tablas markdown (sección Info) y tablas app ── */
+    .stMarkdown table, table.app-table {{
+        border-collapse: collapse !important;
+        width: 100% !important;
+        margin: 0.5rem 0 1rem 0 !important;
+        font-size: 0.9rem !important;
+    }}
+    .stMarkdown table th, table.app-table th {{
+        background-color: #1e4d1e !important;
+        color: #f4c542 !important;
+        border: 1px solid #4caf50 !important;
+        padding: 8px 12px !important;
+        text-align: left !important;
+        white-space: nowrap !important;
+    }}
+    .stMarkdown table td, table.app-table td {{
+        border: 1px solid #4caf50 !important;
+        padding: 7px 12px !important;
+        color: #f0f0f0 !important;
+    }}
+    .stMarkdown table tr:nth-child(even) td, table.app-table tbody tr:nth-child(even) td {{
+        background-color: #1e3a1e !important;
+    }}
+    .stMarkdown table tr:nth-child(odd) td, table.app-table tbody tr:nth-child(odd) td {{
+        background-color: #162b16 !important;
+    }}
+    table.app-table tbody tr:hover td {{
+        background-color: #2d5a2d !important;
+    }}
+
+    /* ── Inputs, selectboxes, multiselect, number input ── */
+    .stTextInput input, .stNumberInput input, .stTextArea textarea {{
+        background-color: #1e3a1e !important;
+        color: #f0f0f0 !important;
+        border: 1px solid #4caf50 !important;
+        border-radius: 6px !important;
+    }}
+    .stTextInput label, .stNumberInput label, .stTextArea label,
+    .stSelectbox label, .stMultiSelect label, .stDateInput label {{
+        color: #a5d6a7 !important;
+        font-weight: 600 !important;
+    }}
+    /* Selectbox — caja cerrada */
+    .stSelectbox > div > div,
+    .stMultiSelect > div > div {{
+        background-color: #1e3a1e !important;
+        border: 1px solid #4caf50 !important;
+        border-radius: 6px !important;
+    }}
+    /* Texto dentro del selectbox cerrado */
+    .stSelectbox > div > div > div,
+    .stMultiSelect > div > div > div {{
+        color: #f0f0f0 !important;
+    }}
+    /* Lista desplegada de opciones */
+    [data-baseweb="popover"] ul,
+    [data-baseweb="menu"] {{
+        background-color: #1e3a1e !important;
+        border: 1px solid #4caf50 !important;
+    }}
+    [data-baseweb="menu"] li,
+    [data-baseweb="option"] {{
+        background-color: #1e3a1e !important;
+        color: #f0f0f0 !important;
+    }}
+    [data-baseweb="menu"] li:hover,
+    [data-baseweb="option"]:hover {{
+        background-color: #2d6a2d !important;
+        color: #f4c542 !important;
+    }}
+    /* Opción seleccionada */
+    [aria-selected="true"][data-baseweb="option"] {{
+        background-color: #2d6a2d !important;
+        color: #f4c542 !important;
+    }}
+    /* Placeholder */
+    .stSelectbox input::placeholder {{
+        color: #a5d6a7 !important;
+    }}
+    /* Date input */
+    .stDateInput input {{
+        background-color: #1e3a1e !important;
+        color: #f0f0f0 !important;
+        border: 1px solid #4caf50 !important;
+    }}
+
     /* ── Botones ── */
     .stButton > button {{
         background: linear-gradient(135deg, #1e4d1e, #2d6a2d);
@@ -1034,6 +1129,50 @@ st.markdown(f"""
     .stButton > button:hover {{
         background: linear-gradient(135deg, #2d6a2d, #3d8a3d);
         border-color: #f4c542;
+    }}
+
+    /* ── Botón abrir sidebar — resaltado y siempre visible ── */
+    [data-testid="collapsedControl"] {{
+        background: linear-gradient(135deg, #f4c542, #e0a800) !important;
+        border-radius: 0 8px 8px 0 !important;
+        box-shadow: 3px 0 12px rgba(244,197,66,0.5) !important;
+    }}
+    [data-testid="collapsedControl"] svg {{
+        fill: #1a2e1a !important;
+    }}
+
+    /* ── Download button ── */
+    .stDownloadButton > button {{
+        background: linear-gradient(135deg, #f4c542, #e0a800) !important;
+        color: #1a2e1a !important;
+        border: none !important;
+        font-weight: bold !important;
+        border-radius: 6px !important;
+    }}
+    .stDownloadButton > button:hover {{
+        background: linear-gradient(135deg, #ffe066, #f4c542) !important;
+        color: #1a2e1a !important;
+    }}
+
+    /* ── Expanders ── */
+    [data-testid="stExpander"] {{
+        border: 1px solid #4caf50 !important;
+        border-radius: 8px !important;
+        margin-bottom: 6px !important;
+        overflow: hidden !important;
+    }}
+    [data-testid="stExpander"] details summary {{
+        background-color: #1e3a1e !important;
+        color: #f4c542 !important;
+        font-weight: bold !important;
+        padding: 8px 14px !important;
+    }}
+    [data-testid="stExpander"] details summary:hover {{
+        background-color: #2d6a2d !important;
+    }}
+    [data-testid="stExpander"] details > div {{
+        background-color: #162b16 !important;
+        padding: 10px 14px !important;
     }}
 
     /* ── Ocultar header Streamlit ── */
@@ -1145,36 +1284,28 @@ def check_password():
             st.session_state["password_correct"] = False
             st.session_state["user_level"] = None
 
-    # Si ya está autenticado, mostrar info y botón de logout
+    # Si ya está autenticado
     if st.session_state.get("password_correct", False):
-        # Mantener el token en la URL para persistencia
         if st.session_state["user_level"] == "admin":
             st.query_params['session_token'] = 'admin_token'
         elif st.session_state["user_level"] == "responsable":
             st.query_params['session_token'] = 'responsable_token'
 
-        with st.sidebar:
-            if st.session_state["user_level"] == "admin":
-                st.success("🔐 Sesión: **Administrador**")
-            else:
-                st.success("👤 Sesión: **Responsable Peña**")
+        nivel_label = "🔐 Administrador" if st.session_state["user_level"] == "admin" else "👤 Responsable Peña"
 
+        with st.expander(f"{nivel_label} — sesión activa", expanded=False):
             if st.button("🚪 Cerrar Sesión"):
                 st.session_state["password_correct"] = False
                 st.session_state["user_level"] = None
                 clear_session_from_browser()
-                # Limpiar token de la URL
                 if 'session_token' in st.query_params:
                     del st.query_params['session_token']
                 st.rerun()
 
-            st.markdown("---")
-
         return st.session_state["user_level"]
 
-    # Mostrar formulario de login
-    with st.sidebar:
-        st.markdown("### 🔐 Iniciar Sesión")
+    # Login visible en la página principal
+    with st.expander("🔐 Acceso Administrador / Responsable Peña", expanded=False):
         st.text_input(
             "Contraseña",
             type="password",
@@ -1182,20 +1313,8 @@ def check_password():
             key="password",
             placeholder="Ingresa tu contraseña"
         )
-
         if "password_correct" in st.session_state and not st.session_state["password_correct"]:
             st.error("❌ Contraseña incorrecta")
-
-        st.markdown("---")
-        st.info("""
-        **Niveles de acceso:**
-
-        👤 **Responsable Peña**
-        - Ingresar pronósticos
-
-        🔐 **Administrador**
-        - Gestión completa
-        """)
 
     return None
 
@@ -1435,7 +1554,7 @@ with tab1:
         clasificacion_display['Premio 🏆'] = premios_inicio
 
         st.caption(f"💰 Bote acumulado: **{bote_total_inicio} €** ({num_jornadas_inicio} jornadas · 1€ por participante por jornada)")
-        st.dataframe(clasificacion_display, use_container_width=True, hide_index=True)
+        st.markdown(df_to_html_table(clasificacion_display), unsafe_allow_html=True)
     else:
         st.info("👋 La temporada aún no ha comenzado. ¡Aquí verás la clasificación en cuanto se juegue la primera jornada!")
 
@@ -1455,7 +1574,7 @@ if tab2 is not None:
 
         if len(usuarios_df) > 0:
             # Mostrar tabla con opciones
-            st.dataframe(usuarios_df, use_container_width=True, hide_index=True)
+            st.markdown(df_to_html_table(usuarios_df), unsafe_allow_html=True)
 
             col_stats, col_export = st.columns([2, 1])
 
@@ -2535,7 +2654,7 @@ with tab6:
         clasificacion_display['Premio 🏆'] = premios
 
         st.caption(f"💰 Bote acumulado: **{bote_total} €** ({num_jornadas} jornadas jugadas · 1€ por participante por jornada)")
-        st.dataframe(clasificacion_display, use_container_width=True, hide_index=True)
+        st.markdown(df_to_html_table(clasificacion_display), unsafe_allow_html=True)
 
         # Botón de descarga
         csv = clasificacion_display.to_csv(index=False).encode('utf-8')
@@ -2564,7 +2683,7 @@ with tab6:
             clasificacion_jornada.insert(0, 'Posición', range(1, len(clasificacion_jornada) + 1))
             clasificacion_jornada.columns = ['Posición', 'Participante', 'Puntos Jornada', 'Exactos', 'Ganador+Dif', 'Solo Ganador']
 
-            st.dataframe(clasificacion_jornada, use_container_width=True, hide_index=True)
+            st.markdown(df_to_html_table(clasificacion_jornada), unsafe_allow_html=True)
 
         st.markdown("---")
 
@@ -2609,7 +2728,7 @@ with tab6:
                 clasificacion_personalizada.columns = ['Posición', 'Participante', 'Puntos Acumulados', 'Aciertos', 'Total Pronósticos']
 
                 # Mostrar clasificación
-                st.dataframe(clasificacion_personalizada, use_container_width=True, hide_index=True)
+                st.markdown(df_to_html_table(clasificacion_personalizada), unsafe_allow_html=True)
 
                 # Botón de descarga
                 csv_personalizada = clasificacion_personalizada.to_csv(index=False).encode('utf-8')
@@ -2677,7 +2796,7 @@ if tab8 is not None:
 
                 # Mostrar clasificación de esa jornada
                 clasificacion_j = get_clasificacion_jornada(jornada['id'])
-                st.dataframe(clasificacion_j, use_container_width=True)
+                st.markdown(df_to_html_table(clasificacion_j), unsafe_allow_html=True)
 
                 # Mostrar detalles de partidos
                 conn = get_conn()
