@@ -2640,6 +2640,7 @@ if 'tab_info' in locals():
         | **7** | En la clasificación general, habrá premios para los **7 primeros clasificados**. |
         | **8** | El premio del participante del mes será la **mitad del bote de la jornada ESTRELLA ⭐**. |
         | **9** | Habrá al final de liga un **premio especial a la mayor puntuación en una jornada**. |
+        | **10** | Todo participante que **no participe en 2 jornadas consecutivas** será **expulsado automáticamente** de la porra. |
 
         ---
 
