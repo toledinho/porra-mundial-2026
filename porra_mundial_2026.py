@@ -2639,11 +2639,12 @@ if 'tab_info' in locals():
         | **Exacto raro** | Resultado exacto de baja frecuencia: 3-0, 0-3, 3-2, 2-3, 4-1, 1-4... | **20** |
         | **Exacto rarísimo** | Goleada (diferencia ≥4 goles) o marcador con ≥6 goles en total | **30** |
 
-        > En **jornadas estrella ⭐** un partido puede puntuar el doble (x2) o triple (x3).
+        > Jornadas normales: 3-4 partidos · Jornadas estrella ⭐: 4 partidos (con x2 y/o x3)
 
         ### ⭐ Jornadas Estrella
 
-        En las **jornadas estrella ⭐**, puede haber un partido que puntúe el **doble (x2)** y/o uno que puntúe el **triple (x3)**.
+        - Las **jornadas normales** tienen entre **3 y 4 partidos**.
+        - Las **jornadas estrella ⭐** tienen siempre **4 partidos**, y además puede haber un partido que puntúe el **doble (x2)** y/o uno que puntúe el **triple (x3)**.
 
         ### 🏆 Clasificaciones
 
