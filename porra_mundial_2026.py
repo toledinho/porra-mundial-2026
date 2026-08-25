@@ -949,6 +949,37 @@ def df_to_html_table(df):
         rows += f"<tr>{cells}</tr>"
     return f"<table class='app-table'><thead><tr>{headers}</tr></thead><tbody>{rows}</tbody></table>"
 
+def calcular_premios_con_empates(puntos_list, bote_total):
+    """
+    Calcula el premio de cada participante teniendo en cuenta empates.
+    Si un grupo empatado abarca posiciones con y sin premio, se suman
+    solo los porcentajes de las posiciones premiadas y se reparten entre
+    todos los del grupo.
+    puntos_list: lista de puntos en orden descendente (uno por participante).
+    Devuelve lista de strings con el importe o "".
+    """
+    PORCENTAJES = [0.33, 0.18, 0.14, 0.11, 0.09, 0.07, 0.04]
+    n = len(puntos_list)
+    premios = [""] * n
+
+    i = 0
+    while i < n:
+        pts = puntos_list[i]
+        # Tamaño completo del grupo empatado (sin límite de 7)
+        j = i + 1
+        while j < n and puntos_list[j] == pts:
+            j += 1
+        # Porcentajes que corresponden a las posiciones i..j-1 dentro del top 7
+        pct_total = sum(PORCENTAJES[k] for k in range(i, min(j, len(PORCENTAJES))))
+        if pct_total > 0:
+            # Todos los del grupo se reparten ese bote por igual
+            importe = round(bote_total * pct_total / (j - i))
+            for k in range(i, j):
+                premios[k] = f"{importe:.0f} €"
+        i = j
+
+    return premios
+
 # CSS personalizado
 import os as _os
 _header_img_path = _os.path.join(_os.path.dirname(__file__), "logo_porraneta_header.png")
@@ -1126,14 +1157,12 @@ st.markdown(f"""
         background-color: #2d6a2d !important;
         color: #f4c542 !important;
     }}
-    /* Asegurar que todo texto dentro del dropdown sea visible */
+    /* Texto dentro del dropdown visible */
     [data-baseweb="popover"] span,
-    [data-baseweb="popover"] div,
     [data-baseweb="popover"] li,
     [role="listbox"] span,
-    [role="listbox"] div {{
+    [role="listbox"] li {{
         color: #f0f0f0 !important;
-        background-color: transparent !important;
     }}
 
     /* ── Placeholders ── */
@@ -1142,10 +1171,18 @@ st.markdown(f"""
         opacity: 1 !important;
     }}
     /* Date input */
-    .stDateInput input {{
+    .stDateInput input,
+    .stDateInput > div > div,
+    .stDateInput > div > div > div {{
         background-color: #1e3a1e !important;
         color: #f0f0f0 !important;
         border: 1px solid #4caf50 !important;
+    }}
+    [data-baseweb="input"] {{
+        background-color: #1e3a1e !important;
+    }}
+    [data-baseweb="input"] > div {{
+        background-color: #1e3a1e !important;
     }}
     /* ── Calendario desplegable ── */
     /* Especificidad (0,1,3): html body [attr] tag > (0,1,1) del popover */
@@ -1604,8 +1641,6 @@ with tab1:
     conn_bote.close()
     bote_total_inicio = int(bote_df_inicio['n'].sum()) if len(bote_df_inicio) > 0 else 0
 
-    PORCENTAJES_INICIO = [0.33, 0.18, 0.14, 0.11, 0.09, 0.07, 0.04]
-
     clasificacion_completa = get_clasificacion_general(incluir_deuda=is_admin)
 
     if len(clasificacion_completa) > 0:
@@ -1620,13 +1655,8 @@ with tab1:
             clasificacion_display.columns = ['Posición', 'Participante', 'Puntos', 'Exactos',
                                              'Ganador+Dif', 'Solo Ganador', 'Jornadas', 'Mejor Jornada']
 
-        premios_inicio = []
-        for i in range(len(clasificacion_display)):
-            if i < len(PORCENTAJES_INICIO):
-                premios_inicio.append(f"{round(bote_total_inicio * PORCENTAJES_INICIO[i]):.0f} €")
-            else:
-                premios_inicio.append("")
-        clasificacion_display['Premio 🏆'] = premios_inicio
+        puntos_inicio = clasificacion_display['Puntos'].tolist()
+        clasificacion_display['Premio 🏆'] = calcular_premios_con_empates(puntos_inicio, bote_total_inicio)
 
         st.caption(f"💰 Bote acumulado: **{bote_total_inicio} €** ({num_jornadas_inicio} jornadas · 1€ por participante por jornada)")
         st.markdown(df_to_html_table(clasificacion_display), unsafe_allow_html=True)
@@ -2702,8 +2732,6 @@ with tab6:
         bote_total = int(bote_df['n'].sum()) if len(bote_df) > 0 else 0
 
         # Porcentajes para los 7 primeros
-        PORCENTAJES = [0.33, 0.18, 0.14, 0.11, 0.09, 0.07, 0.04]
-
         # Formatear columnas según el rol
         clasificacion_display = clasificacion_general.copy()
 
@@ -2718,15 +2746,9 @@ with tab6:
             clasificacion_display.columns = ['Posición', 'Participante', 'Puntos', 'Exactos',
                                              'Ganador+Dif', 'Solo Ganador', 'Jornadas', 'Mejor Jornada']
 
-        # Añadir columna de premio estimado para los 7 primeros
-        premios = []
-        for i, pos in enumerate(clasificacion_display['Posición']):
-            if i < len(PORCENTAJES):
-                importe = round(bote_total * PORCENTAJES[i], 2)
-                premios.append(f"{importe:.0f} €")
-            else:
-                premios.append("")
-        clasificacion_display['Premio 🏆'] = premios
+        # Añadir columna de premio con empates
+        puntos_general = clasificacion_display['Puntos'].tolist()
+        clasificacion_display['Premio 🏆'] = calcular_premios_con_empates(puntos_general, bote_total)
 
         st.caption(f"💰 Bote acumulado: **{bote_total} €** ({num_jornadas} jornadas jugadas · 1€ por participante por jornada)")
         st.markdown(df_to_html_table(clasificacion_display), unsafe_allow_html=True)
