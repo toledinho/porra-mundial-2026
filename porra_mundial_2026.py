@@ -1653,7 +1653,7 @@ with tab1:
                 <div class="stat-card">
                     <div class="stat-number">👑</div>
                     <div class="stat-label">Líder: {lideres_str}<br>
-                    <small>{premio_lider}</small></div>
+                    <small>{int(max_pts)} pts · {premio_lider}</small></div>
                 </div>
                 """, unsafe_allow_html=True)
 
