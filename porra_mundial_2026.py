@@ -1087,47 +1087,108 @@ st.markdown(f"""
     .stMultiSelect > div > div > div {{
         color: #f0f0f0 !important;
     }}
-    /* Lista desplegada de opciones */
+    /* ── Selectbox / Multiselect: caja y valor seleccionado ── */
+    [data-baseweb="select"] {{
+        background-color: #1e3a1e !important;
+    }}
+    [data-baseweb="select"] > div {{
+        background-color: #1e3a1e !important;
+        border-color: #4caf50 !important;
+    }}
+    [data-baseweb="select"] * {{
+        color: #f0f0f0 !important;
+        background-color: transparent !important;
+    }}
+    [data-baseweb="select"] svg {{
+        fill: #a5d6a7 !important;
+    }}
+
+    /* ── Lista desplegada de opciones ── */
+    [data-baseweb="popover"],
+    [data-baseweb="popover"] > div,
     [data-baseweb="popover"] ul,
-    [data-baseweb="menu"] {{
+    [data-baseweb="menu"],
+    [data-baseweb="menu"] > div,
+    [role="listbox"],
+    [role="listbox"] > div {{
         background-color: #1e3a1e !important;
         border: 1px solid #4caf50 !important;
     }}
-    [data-baseweb="menu"] li,
-    [data-baseweb="option"] {{
+    [data-baseweb="option"],
+    [role="option"] {{
         background-color: #1e3a1e !important;
         color: #f0f0f0 !important;
     }}
-    [data-baseweb="menu"] li:hover,
-    [data-baseweb="option"]:hover {{
+    [data-baseweb="option"]:hover,
+    [role="option"]:hover,
+    [data-baseweb="option"][aria-selected="true"],
+    [role="option"][aria-selected="true"] {{
         background-color: #2d6a2d !important;
         color: #f4c542 !important;
     }}
-    /* Opción seleccionada */
-    [aria-selected="true"][data-baseweb="option"] {{
-        background-color: #2d6a2d !important;
-        color: #f4c542 !important;
+    /* Asegurar que todo texto dentro del dropdown sea visible */
+    [data-baseweb="popover"] span,
+    [data-baseweb="popover"] div,
+    [data-baseweb="popover"] li,
+    [role="listbox"] span,
+    [role="listbox"] div {{
+        color: #f0f0f0 !important;
+        background-color: transparent !important;
     }}
-    /* Placeholders — texto por defecto visible */
+
+    /* ── Placeholders ── */
     input::placeholder, textarea::placeholder {{
         color: #a5d6a7 !important;
         opacity: 1 !important;
-    }}
-    /* Valor seleccionado en selectbox con index=None (placeholder) */
-    .stSelectbox [data-baseweb="select"] span,
-    .stMultiSelect [data-baseweb="select"] span {{
-        color: #f0f0f0 !important;
-    }}
-    /* Texto placeholder del selectbox cuando no hay selección */
-    .stSelectbox [data-baseweb="select"] [data-testid="stMarkdownContainer"],
-    [data-baseweb="select"] > div > div > div {{
-        color: #f0f0f0 !important;
     }}
     /* Date input */
     .stDateInput input {{
         background-color: #1e3a1e !important;
         color: #f0f0f0 !important;
         border: 1px solid #4caf50 !important;
+    }}
+    /* ── Calendario desplegable ── */
+    /* Especificidad (0,1,3): html body [attr] tag > (0,1,1) del popover */
+    html body [data-baseweb="calendar"] div,
+    html body [data-baseweb="calendar"] span,
+    html body [data-baseweb="calendar"] input,
+    html body [data-baseweb="datepicker"] div,
+    html body [data-baseweb="datepicker"] span,
+    html body [data-baseweb="datepicker"] input {{
+        background-color: #1e3a1e !important;
+        color: #f0f0f0 !important;
+        border-color: #4caf50 !important;
+        box-shadow: none !important;
+    }}
+    html body [data-baseweb="calendar"],
+    html body [data-baseweb="datepicker"] {{
+        background-color: #1e3a1e !important;
+        border: 1px solid #4caf50 !important;
+    }}
+    /* Cabecera mes/año */
+    html body [data-baseweb="calendar"] button {{
+        background-color: #1e3a1e !important;
+        color: #f4c542 !important;
+        border: none !important;
+    }}
+    /* Días de la semana */
+    html body [data-baseweb="calendar"] div[role="columnheader"],
+    html body [data-baseweb="calendar"] div[role="columnheader"] * {{
+        color: #a5d6a7 !important;
+        background-color: #1e3a1e !important;
+    }}
+    /* Día seleccionado */
+    html body [data-baseweb="calendar"] [aria-selected="true"],
+    html body [data-baseweb="calendar"] [aria-selected="true"] * {{
+        background-color: #f4c542 !important;
+        color: #1a2e1a !important;
+        border-radius: 50% !important;
+    }}
+    /* Hover en días */
+    html body [data-baseweb="calendar"] div[role="gridcell"] button:hover {{
+        background-color: #2d6a2d !important;
+        color: #f4c542 !important;
+        border-radius: 50% !important;
     }}
 
     /* ── Botones ── */
