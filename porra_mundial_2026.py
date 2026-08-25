@@ -3031,8 +3031,7 @@ if 'tab_info' in locals():
 
         > Los importes exactos dependerán del número de jornadas jugadas al cierre de la temporada.
         >
-        > \* Si los redondeos generan alguna diferencia de céntimos o euros, dicho sobrante se sumará al premio de la **mejor jornada**.
-        > En caso de que los redondeos generen alguna diferencia de céntimos o euros, dicho sobrante se sumará al premio de la **mejor jornada**.
+        > \* El sobrante por redondeos se suma al premio de la **mejor jornada**. Ejemplo: si los 3 primeros empatan y les corresponden 1.001 €, cada uno recibirá 333 € (no 333,33 €) y el euro restante irá al premio de mejor jornada.
 
         ---
 
