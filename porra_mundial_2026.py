@@ -3027,9 +3027,12 @@ if 'tab_info' in locals():
         | 5.º clasificado | **9%** |
         | 6.º clasificado | **7%** |
         | 7.º clasificado | **4%** |
-        | 🏅 Mejor jornada (mayor puntuación en una jornada) | **4%** |
+        | 🏅 Mejor jornada (mayor puntuación en una jornada) | **4%\*** |
 
         > Los importes exactos dependerán del número de jornadas jugadas al cierre de la temporada.
+        >
+        > \* Si los redondeos generan alguna diferencia de céntimos o euros, dicho sobrante se sumará al premio de la **mejor jornada**.
+        > En caso de que los redondeos generen alguna diferencia de céntimos o euros, dicho sobrante se sumará al premio de la **mejor jornada**.
 
         ---
 
