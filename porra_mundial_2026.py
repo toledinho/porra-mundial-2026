@@ -1654,8 +1654,11 @@ with tab1:
                 idx_mejor = clasificacion['mejor_jornada'].idxmax()
                 mejor_jornada_nombre = clasificacion.loc[idx_mejor, 'participante']
                 mejor_jornada_pts = int(clasificacion.loc[idx_mejor, 'mejor_jornada'])
-                # Premio mejor jornada = 4% del bote
-                premio_mejor_jornada = round(bote_total_inicio * 0.04)
+                # Premio mejor jornada = lo que queda tras repartir los 7 premios
+                puntos_sc = clasificacion['puntos_totales'].tolist()
+                premios_sc = calcular_premios_con_empates(puntos_sc, bote_total_inicio)
+                repartido_sc = sum(int(p.replace(' €', '')) for p in premios_sc if p)
+                premio_mejor_jornada = bote_total_inicio - repartido_sc
                 st.markdown(f"""
                 <div class="stat-card">
                     <div class="stat-number">🏅</div>
