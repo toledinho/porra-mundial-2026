@@ -1022,30 +1022,31 @@ st.markdown(f"""
     .stat-card {{
         background: linear-gradient(135deg, #1e4d1e 0%, #2d6a2d 100%);
         border: 1px solid #4caf50;
-        padding: 1.2rem;
+        padding: 0.8rem 1rem;
         border-radius: 12px;
         text-align: center;
         box-shadow: 0 4px 12px rgba(0,0,0,0.3);
-        min-height: 110px;
+        height: 110px;
         display: flex;
         flex-direction: column;
         justify-content: center;
         align-items: center;
+        overflow: hidden;
     }}
     .stat-number {{
-        font-size: 1.8rem;
+        font-size: 1.6rem;
         font-weight: bold;
         color: #f4c542 !important;
-        line-height: 1.2;
+        line-height: 1.1;
     }}
     .stat-label {{
-        font-size: 0.85rem;
+        font-size: 0.78rem;
         color: #a5d6a7 !important;
-        margin-top: 0.3rem;
-        line-height: 1.4;
+        margin-top: 0.25rem;
+        line-height: 1.3;
     }}
     .stat-label small {{
-        font-size: 0.8rem;
+        font-size: 0.75rem;
         color: #f4c542 !important;
     }}
 
