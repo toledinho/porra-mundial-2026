@@ -1641,30 +1641,33 @@ with tab1:
 
         with col4:
             if len(clasificacion) > 0:
-                lider = clasificacion.iloc[0]['participante']
+                puntos_sc = clasificacion['puntos_totales'].tolist()
+                premios_sc = calcular_premios_con_empates(puntos_sc, bote_total_inicio)
+                repartido_sc = sum(int(p.replace(' €', '')) for p in premios_sc if p)
+                premio_mejor_jornada = bote_total_inicio - repartido_sc
+                max_pts = clasificacion.iloc[0]['puntos_totales']
+                lideres = clasificacion[clasificacion['puntos_totales'] == max_pts]
+                premio_lider = premios_sc[0] if premios_sc else ""
+                lideres_str = "<br>".join(lideres['participante'].tolist())
                 st.markdown(f"""
                 <div class="stat-card">
                     <div class="stat-number">👑</div>
-                    <div class="stat-label">Líder: {lider}</div>
+                    <div class="stat-label">Líder: {lideres_str}<br>
+                    <small>{premio_lider}</small></div>
                 </div>
                 """, unsafe_allow_html=True)
 
         with col5:
             if len(clasificacion) > 0:
-                # Mejor jornada individual: participante con mayor puntuación en una sola jornada
-                idx_mejor = clasificacion['mejor_jornada'].idxmax()
-                mejor_jornada_nombre = clasificacion.loc[idx_mejor, 'participante']
-                mejor_jornada_pts = int(clasificacion.loc[idx_mejor, 'mejor_jornada'])
-                # Premio mejor jornada = lo que queda tras repartir los 7 premios
-                puntos_sc = clasificacion['puntos_totales'].tolist()
-                premios_sc = calcular_premios_con_empates(puntos_sc, bote_total_inicio)
-                repartido_sc = sum(int(p.replace(' €', '')) for p in premios_sc if p)
-                premio_mejor_jornada = bote_total_inicio - repartido_sc
+                max_mj = clasificacion['mejor_jornada'].max()
+                mejores = clasificacion[clasificacion['mejor_jornada'] == max_mj]['participante'].tolist()
+                mejores_str = "<br>".join(mejores)
+                premio_mj_ind = round(premio_mejor_jornada / len(mejores))
                 st.markdown(f"""
                 <div class="stat-card">
                     <div class="stat-number">🏅</div>
-                    <div class="stat-label">Mejor Jornada: {mejor_jornada_nombre}<br>
-                    <small>{mejor_jornada_pts} pts · {premio_mejor_jornada} €</small></div>
+                    <div class="stat-label">Mejor Jornada: {mejores_str}<br>
+                    <small>{int(max_mj)} pts · {premio_mj_ind} €</small></div>
                 </div>
                 """, unsafe_allow_html=True)
 
