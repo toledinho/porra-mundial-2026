@@ -1582,8 +1582,20 @@ with tab1:
 
     jornadas_df = get_jornadas()
 
+    # Calcular bote aquí para usarlo en scorecards y clasificación
+    conn_bote_sc = get_conn()
+    num_jornadas_inicio = pd.read_sql_query("SELECT COUNT(*) as total FROM jornadas", conn_bote_sc)['total'].iloc[0]
+    bote_df_inicio = pd.read_sql_query("""
+        SELECT p.jornada_id, COUNT(DISTINCT pr.participante) as n
+        FROM pronosticos pr
+        JOIN partidos p ON pr.partido_id = p.id
+        GROUP BY p.jornada_id
+    """, conn_bote_sc)
+    conn_bote_sc.close()
+    bote_total_inicio = int(bote_df_inicio['n'].sum()) if len(bote_df_inicio) > 0 else 0
+
     if len(jornadas_df) > 0:
-        col1, col2, col3, col4 = st.columns(4)
+        col1, col2, col3, col4, col5 = st.columns(5)
 
         with col1:
             st.markdown(f"""
@@ -1624,22 +1636,26 @@ with tab1:
                 </div>
                 """, unsafe_allow_html=True)
 
+        with col5:
+            if len(clasificacion) > 0:
+                # Mejor jornada individual: participante con mayor puntuación en una sola jornada
+                idx_mejor = clasificacion['mejor_jornada'].idxmax()
+                mejor_jornada_nombre = clasificacion.loc[idx_mejor, 'participante']
+                mejor_jornada_pts = int(clasificacion.loc[idx_mejor, 'mejor_jornada'])
+                # Premio mejor jornada = 4% del bote
+                premio_mejor_jornada = round(bote_total_inicio * 0.04)
+                st.markdown(f"""
+                <div class="stat-card">
+                    <div class="stat-number">🏅</div>
+                    <div class="stat-label">Mejor Jornada: {mejor_jornada_nombre}<br>
+                    <small>{mejor_jornada_pts} pts · {premio_mejor_jornada} €</small></div>
+                </div>
+                """, unsafe_allow_html=True)
+
         st.markdown("---")
 
     # Clasificación General — siempre visible
     st.subheader("🏆 Clasificación General de la Liga 2026-27")
-
-    # Calcular bote real: suma de participantes distintos que jugaron cada jornada
-    conn_bote = get_conn()
-    num_jornadas_inicio = pd.read_sql_query("SELECT COUNT(*) as total FROM jornadas", conn_bote)['total'].iloc[0]
-    bote_df_inicio = pd.read_sql_query("""
-        SELECT p.jornada_id, COUNT(DISTINCT pr.participante) as n
-        FROM pronosticos pr
-        JOIN partidos p ON pr.partido_id = p.id
-        GROUP BY p.jornada_id
-    """, conn_bote)
-    conn_bote.close()
-    bote_total_inicio = int(bote_df_inicio['n'].sum()) if len(bote_df_inicio) > 0 else 0
 
     clasificacion_completa = get_clasificacion_general(incluir_deuda=is_admin)
 
