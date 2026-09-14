@@ -1882,8 +1882,12 @@ if tab2 is not None:
                     key="confirmar_eliminar_usuario"
                 )
 
-            if st.button("🗑️ Eliminar Usuario Definitivamente", type="secondary", disabled=(confirmar_eliminar_usuario != "ELIMINAR")):
+            if st.button("🗑️ Eliminar Usuario Definitivamente", type="secondary", disabled=(confirmar_eliminar_usuario != "ELIMINAR" or not usuario_eliminar)):
                 try:
+                    if not usuario_eliminar:
+                        st.error("❌ No hay usuario seleccionado")
+                        st.stop()
+
                     conn = get_conn()
                     c = conn.cursor()
 
