@@ -37,11 +37,18 @@ EQUIPOS_SERIE_A = [
     "Roma", "Sassuolo", "Torino", "Udinese", "Venezia"
 ]
 
+EQUIPOS_SELECCIONES = [
+    "España", "Francia", "Alemania", "Portugal", "Inglaterra",
+    "Italia", "Países Bajos", "Bélgica", "Brasil", "Argentina",
+    "Noruega", "Serbia",
+]
+
 EQUIPOS_POR_LIGA = {
     "LaLiga 1ª": EQUIPOS_PRIMERA,
     "LaLiga 2ª": EQUIPOS_SEGUNDA,
     "Premier League": EQUIPOS_PREMIER,
     "Serie A": EQUIPOS_SERIE_A,
+    "Selecciones": EQUIPOS_SELECCIONES,
 }
 
 # Configuración de la página
