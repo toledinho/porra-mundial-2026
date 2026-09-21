@@ -1700,7 +1700,7 @@ with tab1:
         puntos_inicio = clasificacion_display['Puntos'].tolist()
         clasificacion_display['Premio 🏆'] = calcular_premios_con_empates(puntos_inicio, bote_total_inicio)
 
-        st.caption(f"💰 Bote acumulado: **{bote_total_inicio} €** ({num_jornadas_inicio} jornadas · 1€ por participante por jornada)")
+        st.caption(f"💰 Bote teórico (orientativo): **{bote_total_inicio} €** ({num_jornadas_inicio} jornadas · 1€ por participante por jornada)")
         st.markdown(df_to_html_table(clasificacion_display), unsafe_allow_html=True)
     else:
         st.info("👋 La temporada aún no ha comenzado. ¡Aquí verás la clasificación en cuanto se juegue la primera jornada!")
@@ -2796,7 +2796,7 @@ with tab6:
         puntos_general = clasificacion_display['Puntos'].tolist()
         clasificacion_display['Premio 🏆'] = calcular_premios_con_empates(puntos_general, bote_total)
 
-        st.caption(f"💰 Bote acumulado: **{bote_total} €** ({num_jornadas} jornadas jugadas · 1€ por participante por jornada)")
+        st.caption(f"💰 Bote teórico (orientativo): **{bote_total} €** ({num_jornadas} jornadas jugadas · 1€ por participante por jornada)")
         st.markdown(df_to_html_table(clasificacion_display), unsafe_allow_html=True)
 
         # Botón de descarga
