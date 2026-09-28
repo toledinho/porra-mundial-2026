@@ -40,7 +40,7 @@ EQUIPOS_SERIE_A = [
 EQUIPOS_SELECCIONES = [
     "España", "Francia", "Alemania", "Portugal", "Inglaterra",
     "Italia", "Países Bajos", "Bélgica", "Brasil", "Argentina",
-    "Noruega", "Serbia",
+    "Noruega", "Serbia", "Croacia",
 ]
 
 EQUIPOS_POR_LIGA = {
